@@ -1,4 +1,5 @@
 .DS_Store
+state/
 
 # Python-generated files
 __pycache__/
