@@ -1,0 +1,19 @@
+.DS_Store
+
+# Python-generated files
+__pycache__/
+.pytest_cache/
+*.py[oc]
+build/
+dist/
+sandbox/
+wheels/
+*.egg-info
+*.db
+*.log
+
+# Virtual environments
+.venv
+
+# Enviroment files
+.env
