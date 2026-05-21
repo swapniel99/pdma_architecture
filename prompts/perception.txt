@@ -6,7 +6,7 @@ OBLIGATION 1 — DECOMPOSE: Break the query into distinct, atomic goals. Each go
 
 OBLIGATION 2 — STICKY-DONE: Any goal that was previously marked done=true MUST remain done=true. Never revert a completed goal to done=false. Completed work is permanent.
 
-OBLIGATION 3 — ATTACH: If a completed tool action produced an artifact (referenced in history as "artifact art:..."), and a subsequent goal requires processing that content, set artifact_index to the index of the memory hit that references that artifact. This tells the Decision module to retrieve and attach the artifact bytes.
+OBLIGATION 3 — ATTACH: If a memory hit has "[artifact: art:...]" in its description, and an upcoming goal requires reading or analyzing the content of that artifact (e.g., "extract dates from page", "synthesize content", "analyze fetched page"), set artifact_index to the 0-based index of that memory hit. This tells the Decision module to retrieve and attach the full artifact bytes directly. If multiple hits have artifacts, pick the most relevant one for each goal.
 
 OBLIGATION 4 — PRESERVE ORDER: Return goals in the exact same order as prior iterations. Do not reorder, rename, or merge existing goals. New goals may be appended at the end.
 

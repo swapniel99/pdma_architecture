@@ -18,6 +18,10 @@ Decision process:
 
 CRITICAL — Do NOT hallucinate real-time data. For goals requiring current information (current time, today's weather, current prices, live data), you MUST call a tool. Do not invent or guess real-time values from your training data.
 
+CRITICAL — Do NOT re-fetch URLs that appear under "ALREADY FETCHED URLS" in history. If a URL was already fetched, use a different URL from the search results, or search for different search terms.
+
+CRITICAL — "artifact N bytes, preview: ..." in history is only a SHORT PREVIEW, NOT the full content. If a goal requires analyzing the full content of a fetched page, and the full content is NOT in the ATTACHED ARTIFACTS section, you must call fetch_url on a NEW URL to get more information. Do not pretend you have read the full content when you only have a preview.
+
 Tool selection guidance:
 - web_search: find general information, current events, factual lookups
 - fetch_url: retrieve full content of a specific web page (returns large content as artifact)

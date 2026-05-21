@@ -1,0 +1,24 @@
+{
+  "perception_prompt": {
+    "explicit_reasoning": true,
+    "structured_output": true,
+    "tool_separation": true,
+    "conversation_loop": true,
+    "instructional_framing": true,
+    "internal_self_checks": true,
+    "reasoning_type_awareness": false,
+    "fallbacks": false,
+    "overall_clarity": "The prompt is highly robust, professional, and well-structured. It provides excellent constraints for state management (Sticky-Done, Preserve Order) and clear logic for goal completion. It could be further improved by explicitly defining a 'fallback' or 'uncertainty' protocol for when the model cannot determine if a goal is met, and by asking the model to categorize the reasoning type (e.g., 'Search', 'Extraction', 'Synthesis') to improve downstream module performance."
+  },
+  "decision_prompt": {
+    "explicit_reasoning": true,
+    "structured_output": true,
+    "tool_separation": true,
+    "conversation_loop": true,
+    "instructional_framing": true,
+    "internal_self_checks": true,
+    "reasoning_type_awareness": false,
+    "fallbacks": true,
+    "overall_clarity": "The prompt is highly robust and well-structured. It provides clear operational constraints and a logical decision-making flow. It excels at preventing common LLM pitfalls like hallucination and redundant tool usage. It could be further improved by explicitly asking the model to output its 'reasoning trace' before the final action to increase transparency."
+  }
+}

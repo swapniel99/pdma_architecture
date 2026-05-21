@@ -13,6 +13,7 @@ wheels/
 *.db
 *.log
 *.json
+!docs/*.json
 
 # Virtual environments
 .venv

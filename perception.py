@@ -17,7 +17,10 @@ def _format_hits(hits: list[MemoryItem]) -> str:
         return "No relevant memory hits."
     lines = []
     for i, h in enumerate(hits):
-        artifact_note = f" [artifact: {h.artifact_id}]" if h.artifact_id else ""
+        if h.artifact_id:
+            artifact_note = f" [artifact: {h.artifact_id} — full content available for attachment]"
+        else:
+            artifact_note = ""
         lines.append(f"[{i}] ({h.kind}) {h.descriptor}: {h.value}{artifact_note}")
     return "\n".join(lines)
 

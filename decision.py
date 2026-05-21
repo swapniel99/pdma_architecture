@@ -21,14 +21,25 @@ def _format_hits(hits: list[MemoryItem]) -> str:
 def _format_history(history: list[dict]) -> str:
     if not history:
         return "No history yet."
+    # Track fetched URLs to show explicitly
+    fetched_urls: list[str] = []
+    for h in history:
+        if h.get("kind") == "action" and h.get("tool") == "fetch_url":
+            url = h.get("args", {}).get("url", "")
+            if url:
+                fetched_urls.append(url)
+
     lines = []
+    if fetched_urls:
+        lines.append(f"ALREADY FETCHED URLS (do NOT fetch again): {', '.join(fetched_urls)}")
+
     for h in history:
         kind = h.get("kind", "unknown")
         if kind == "action":
             lines.append(f"TOOL {h.get('tool')} result: {h.get('result', '')[:400]}")
         elif kind == "answer":
             lines.append(f"ANSWER: {h.get('text', '')[:400]}")
-    return "\n".join(lines[-10:])  # last 10 entries
+    return "\n".join(lines[-12:])
 
 
 def _format_attached(attached: list[bytes]) -> str:

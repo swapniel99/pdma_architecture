@@ -163,9 +163,19 @@ async def run(query: str) -> str:
                     break
 
                 # Retrieve attached artifact bytes
+                # Auto-attach: if no explicit attachment, use the most recent fetch_url artifact
+                attach_id = goal.attach_artifact_id
+                if not attach_id:
+                    for h in reversed(history):
+                        if h.get("kind") == "action" and h.get("art_id") and h.get("tool") == "fetch_url":
+                            candidate = h["art_id"]
+                            if artifacts.exists(candidate):
+                                attach_id = candidate
+                                break
+
                 attached: list[bytes] = []
-                if goal.attach_artifact_id and artifacts.exists(goal.attach_artifact_id):
-                    attached.append(artifacts.get_bytes(goal.attach_artifact_id))
+                if attach_id and artifacts.exists(attach_id):
+                    attached.append(artifacts.get_bytes(attach_id))
 
                 out = decision.next_step(
                     goal=goal,
