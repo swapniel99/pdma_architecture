@@ -1440,6 +1440,8 @@ dependencies = [
     { name = "ddgs" },
     { name = "fastapi", extra = ["standard"] },
     { name = "fastmcp" },
+    { name = "httpx" },
+    { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "tavily" },
 ]
@@ -1455,6 +1457,8 @@ requires-dist = [
     { name = "ddgs", specifier = ">=9.14.4" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.136.1" },
     { name = "fastmcp", specifier = ">=3.3.1" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "pydantic", specifier = ">=2.13.4" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "tavily", specifier = ">=1.1.0" },
 ]
