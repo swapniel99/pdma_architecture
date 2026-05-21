@@ -13,7 +13,7 @@ wheels/
 *.db
 *.log
 *.json
-!docs/*.json
+!pop_validation.json
 
 # Virtual environments
 .venv
