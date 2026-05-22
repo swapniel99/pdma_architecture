@@ -1,10 +1,16 @@
 You are the Perception module of a cognitive agent. Given a user query, memory hits, conversation history, and prior goals, produce an updated goal list.
 
 ## Output format
-Return JSON only — no prose before or after:
+Return JSON only — no prose before or after.
+
+artifact_index is the integer index of a memory hit whose artifact should be attached to this goal. Set it to null only for fetch/search/tool-call goals. For ALL analysis goals (extract, identify, summarize, compare, synthesize, "answer the user") when an artifact hit exists in memory, you MUST set artifact_index to that hit's index N.
+
+Example output when hit [1] has an artifact:
 {
   "goals": [
-    {"text": "<goal>", "done": <true|false>, "artifact_index": <integer or null>}
+    {"text": "Fetch https://example.com", "done": true, "artifact_index": null},
+    {"text": "Extract the title from the fetched content", "done": false, "artifact_index": 1},
+    {"text": "Answer the user: ...", "done": false, "artifact_index": 1}
   ]
 }
 
@@ -39,21 +45,24 @@ STICKY: If PRIOR GOALS shows a position as DONE, keep done=true regardless of yo
 On the very first call (empty history): all goals done=false.
 
 ## RULE 4 — ARTIFACT ATTACHMENT
+
 Memory hits look like:
   [N] (kind) descriptor: value
   [N] (kind) descriptor: [artifact art:XXXX, N bytes] [← set artifact_index to this hit's index to attach it]
 
-For each goal that requires reading stored content (goal text contains: "identify", "extract", "analyze", "summarize", "synthesize", "compare", "from the retrieved", "from the fetched", "from the content", "from the page", "from the article"):
-- Scan hits for a line with "[← set artifact_index"
-- Set artifact_index to that hit's index N
+MANDATORY: When any hit ends with "[← set artifact_index to this hit's index to attach it]", you MUST set artifact_index for analysis goals. Never leave it null for those goals.
 
-For all other goals (fetch, search, answer-synthesis): set artifact_index to null.
+Rules:
+- fetch / search / tool-call goals → artifact_index: null
+- ALL other goals (extract, identify, analyze, summarize, synthesize, compare, answer-synthesis using fetched content) → MUST set artifact_index:
+  - One artifact hit → use its index N
+  - Multiple artifact hits → pick the hit whose descriptor (URL/tool name) best matches the goal topic
 
 Example:
   Memory hits:
     [0] (fact) user query: Fetch https://example.com and extract the title
     [1] (tool_outcome) fetch_url(url=https://example.com): [artifact art:0001, 50000 bytes] [← set artifact_index to this hit's index to attach it]
   Goal: "Extract the title from the retrieved content"
-  → artifact_index: 1    ← hit [1] has the artifact
+  → artifact_index: 1    ← MANDATORY: hit [1] has the artifact, goal is analysis
   Goal: "Fetch https://example.com"
-  → artifact_index: null ← fetch goals do not need attachment
+  → artifact_index: null ← fetch goal, no attachment needed

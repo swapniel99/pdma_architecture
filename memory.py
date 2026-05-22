@@ -37,11 +37,25 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _keywords_from_url(url: str) -> list[str]:
+    import re
+    parts = re.split(r'[/:._\-?&=]+', url)
+    seen: set[str] = set()
+    out: list[str] = []
+    for w in parts:
+        w = w.lower()
+        if w and len(w) > 2 and w not in _STOPWORDS and w not in seen:
+            seen.add(w)
+            out.append(w)
+    return out[:20]
+
+
 def _keywords_from_text(text: str) -> list[str]:
     """Extracts unique, lowercased alphanumeric keywords from the given text.
 
     Filters out standard grammatical stopwords and limits the returned list
-    to the top 20 keywords.
+    to the top 20 keywords. URLs are split on path separators to yield
+    meaningful tokens rather than one concatenated blob.
 
     Args:
         text: The source string to extract keywords from.
@@ -50,13 +64,19 @@ def _keywords_from_text(text: str) -> list[str]:
         A list of up to 20 unique keyword strings.
     """
     words = text.lower().split()
-    seen = set()
-    out = []
+    seen: set[str] = set()
+    out: list[str] = []
     for w in words:
-        clean = "".join(c for c in w if c.isalnum())
-        if clean and clean not in _STOPWORDS and clean not in seen:
-            seen.add(clean)
-            out.append(clean)
+        if w.startswith("http://") or w.startswith("https://"):
+            for kw in _keywords_from_url(w):
+                if kw not in seen:
+                    seen.add(kw)
+                    out.append(kw)
+        else:
+            clean = "".join(c for c in w if c.isalnum())
+            if clean and clean not in _STOPWORDS and clean not in seen:
+                seen.add(clean)
+                out.append(clean)
     return out[:20]
 
 
@@ -325,7 +345,11 @@ class Memory:
         """
         kws = _keywords_from_text(tool_call.name)
         for v in tool_call.arguments.values():
-            kws += _keywords_from_text(str(v))
+            s = str(v)
+            if s.startswith("http://") or s.startswith("https://"):
+                kws += _keywords_from_url(s)
+            else:
+                kws += _keywords_from_text(s)
         kws = list(dict.fromkeys(kws))[:20]
 
         descriptor = f"{tool_call.name}({', '.join(f'{k}={v}' for k,v in list(tool_call.arguments.items())[:3])})"

@@ -29,6 +29,7 @@ _ANALYSIS_KEYWORDS = {
     "from the fetched", "from the content", "from retrieved", "from fetched",
     "from the page", "from the article", "from the result",
 }
+_AUTO_ATTACH = True
 _GATEWAY_URL = "http://localhost:8101"
 
 
@@ -127,7 +128,7 @@ async def run(query: str) -> str:
                     break
 
                 attach_id = goal.attach_artifact_id
-                if not attach_id:
+                if not attach_id and _AUTO_ATTACH:
                     if any(kw in goal.text.lower() for kw in _ANALYSIS_KEYWORDS):
                         for hit in reversed(hits):
                             if hit.artifact_id and artifacts.exists(hit.artifact_id):
