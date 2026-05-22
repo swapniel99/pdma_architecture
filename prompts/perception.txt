@@ -41,10 +41,10 @@ On the very first call (empty history): all goals done=false.
 ## RULE 4 — ARTIFACT ATTACHMENT
 Memory hits look like:
   [N] (kind) descriptor: value
-  [N] (kind) descriptor: value [artifact: art:XXXX — full content available for attachment]
+  [N] (kind) descriptor: [artifact art:XXXX, N bytes] [← set artifact_index to this hit's index to attach it]
 
 For each goal that requires reading stored content (goal text contains: "identify", "extract", "analyze", "summarize", "synthesize", "compare", "from the retrieved", "from the fetched", "from the content", "from the page", "from the article"):
-- Scan hits for a line with "[artifact: art:..."
+- Scan hits for a line with "[← set artifact_index"
 - Set artifact_index to that hit's index N
 
 For all other goals (fetch, search, answer-synthesis): set artifact_index to null.
@@ -52,7 +52,7 @@ For all other goals (fetch, search, answer-synthesis): set artifact_index to nul
 Example:
   Memory hits:
     [0] (fact) user query: Fetch https://example.com and extract the title
-    [1] (tool_outcome) fetch_url result: [artifact art:0001, 50000 bytes] [artifact: art:0001 — full content available for attachment]
+    [1] (tool_outcome) fetch_url(url=https://example.com): [artifact art:0001, 50000 bytes] [← set artifact_index to this hit's index to attach it]
   Goal: "Extract the title from the retrieved content"
   → artifact_index: 1    ← hit [1] has the artifact
   Goal: "Fetch https://example.com"

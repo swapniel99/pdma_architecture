@@ -41,10 +41,14 @@ def _format_hits(hits: list[MemoryItem]) -> str:
     lines = []
     for i, h in enumerate(hits):
         if h.artifact_id:
-            artifact_note = f" [artifact: {h.artifact_id} — full content available for attachment]"
+            artifact_note = " [← set artifact_index to this hit's index to attach it]"
         else:
             artifact_note = ""
-        lines.append(f"[{i}] ({h.kind}) {h.descriptor}: {h.value}{artifact_note}")
+        if isinstance(h.value, dict) and "result" in h.value:
+            val_str = h.value["result"]
+        else:
+            val_str = str(h.value)
+        lines.append(f"[{i}] ({h.kind}) {h.descriptor}: {val_str}{artifact_note}")
     return "\n".join(lines)
 
 
