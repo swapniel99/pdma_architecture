@@ -2,6 +2,10 @@
 
 A multi-role cognitive agent built with four typed modules: `memory.py`, `perception.py`, `decision.py`, and `action.py`, wired together in `agent.py`. All LLM calls go through the LLM Gateway V3 (`localhost:8101`). Tool dispatch uses MCP stdio transport.
 
+## Demo Video
+
+📺 **[Watch the Multi-Role Cognitive Agent End-to-End Demo on YouTube](https://youtu.be/4zxG7htV3QU)**
+
 ## Prerequisites
 
 - LLM Gateway V3 running at `http://localhost:8101`
