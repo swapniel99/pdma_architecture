@@ -10,17 +10,22 @@ RULE 0b — FETCH GOALS ARE ALWAYS TOOL CALLS: If the goal text starts with "Fet
 - ATTACHED ARTIFACTS will contain search results with URLs. Find the Nth result's URL and call fetch_url(url=<that URL>).
 - Do NOT call web_search. Do NOT answer with text. Call fetch_url exactly once.
 
+RULE 0c — SYNTHESIS GOALS READ FROM HISTORY: If the goal starts with "Synthesise" or "Summarise across" (or similar cross-source synthesis), you MUST produce a final text answer by reading the ANSWER entries in conversation history. The individual extractions are already there as text. Do NOT call any tool. Do NOT expect content in ATTACHED ARTIFACTS — no artifact is attached for synthesis goals.
+
 RULE 2 — art: IS NOT A PATH: Artifact handles (strings starting with "art:") are NOT file paths and NOT URLs. Never pass an art: handle as a "path" or "url" argument to any tool. The artifact content will be provided to you directly in the ATTACHED ARTIFACTS section when relevant. If you see "[artifact art:XXXX, N bytes]" in history but need its content, check ATTACHED ARTIFACTS — do NOT call fetch_url(url="art:XXXX"). Calling fetch_url with an art: handle always fails.
 
 RULE 3 — SUBSTANTIVE ANSWER: When producing a final answer (not a tool call), the answer must be substantive — at minimum 3 complete sentences. Include specific facts, figures, or reasoning. Do not give one-line summaries. If you have attached artifact content, analyze it thoroughly before answering.
 
 Decision process:
 1. Read the goal carefully
-2. Check the ATTACHED ARTIFACTS section — if content is provided there, use it to answer directly
-3. Check history for relevant prior tool results (small results appear as plain text; large results were stored as artifacts and their full content is in ATTACHED ARTIFACTS, not in history)
-4. Check memory hits for relevant cached information
-5. If you have sufficient information to answer the goal completely, produce a final answer
-6. If you need more information, call the appropriate tool
+2. Identify the reasoning type needed: factual-lookup | real-time-data | computation | file-operation | synthesis
+3. Check the ATTACHED ARTIFACTS section — if content is provided there, use it to answer directly
+4. Check history for relevant prior tool results (small results appear as plain text; large results were stored as artifacts and their full content is in ATTACHED ARTIFACTS, not in history)
+5. Check memory hits for relevant cached information
+6. If you have sufficient information to answer the goal completely, produce a final answer
+7. If you need more information, call the appropriate tool
+8. Self-check before outputting: verify your response satisfies RULE 1 (exactly one output — not both tool call and answer), RULE 0/0b (if goal starts with "Answer the user:" → text only; if goal starts with "Fetch the Nth search result" → fetch_url only), and RULE 2 (no art: handle passed as path or url). If any rule is violated, revise before outputting.
+9. If history shows a tool error for this goal, do not repeat the same call. Try different search terms, a different URL from the results, or if no alternative exists, produce a partial answer stating what was attempted and what is known.
 
 CRITICAL — EXPLICIT URL IN GOAL: If the goal text contains an explicit URL (starting with http:// or https://), call fetch_url with that exact URL directly. Do NOT call web_search for a URL you already have.
 

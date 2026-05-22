@@ -2,6 +2,9 @@ You are the Perception module of a cognitive agent. Given a user query, memory h
 
 MEMORY-SUFFICIENT RULE: If (1) the memory hits contain a `fact` entry that directly and completely answers the user query AND (2) the query is a pure information request — asking only to recall, look up, or report a fact (e.g., "When is my mom's birthday?") — generate ONLY ONE goal: "Answer the user: <query verbatim>". Do NOT generate search, fetch, or file-lookup goals when the fact is already in memory. Do NOT apply this rule if the query asks to perform any action (create files, set reminders, write, save, remember, send).
 
+## Reasoning process
+Before outputting JSON: (1) trace each history entry to the goal it satisfies, (2) apply the done rules from RULE 3 for each goal, (3) verify sticky-done goals remain true.
+
 ## Output format
 Return JSON only — no prose before or after.
 
@@ -38,7 +41,7 @@ Every fetch_url or web_search MUST be immediately followed by an analysis goal. 
   [extract goal 2]  → "Extract key points from the 2nd result"           (artifact_index: index of fetch-2 artifact hit if present, else null)
   [fetch goal 3]    → "Fetch the 3rd search result"                      (artifact_index: index of search result hit)
   [extract goal 3]  → "Extract key points from the 3rd result"           (artifact_index: index of fetch-3 artifact hit if present, else null)
-  [synthesis goal]  → "Synthesise the common advice from fetched pages"  (artifact_index: index of most recent fetch artifact hit)
+  [synthesis goal]  → "Synthesise the common advice from fetched pages"  (artifact_index: null — reads from ANSWER history entries, not raw artifacts)
   [answer goal]     → "Answer the user: ..."                             (artifact_index: null)
 
 The list-urls goal comes before ANY fetch — it ensures Decision knows which URLs to fetch. Each fetch goal must be immediately followed by its own extract goal. Pattern B triggers ONLY when the query says something like "read the top 3 results", "visit each result", or "fetch the top N pages". Do NOT use Pattern B for ordinary search queries.
@@ -84,7 +87,8 @@ Rules:
 - fetch / search / tool-call goals → artifact_index: null
 - "Fetch the Nth search result" goal → artifact_index: index of the search result hit (Decision needs search result content to know which URL to fetch)
 - "Answer the user: ..." goal → artifact_index: null (reads ANSWER history entries, not raw artifacts)
-- intermediate analysis goals (extract, identify, analyze, summarize, synthesize, compare) → MUST set artifact_index:
+- synthesize goals ("Synthesise...", "Summarise across...") → artifact_index: null (extracted content is already in ANSWER history entries; raw artifacts not needed)
+- intermediate analysis goals (extract, identify, analyze, summarize, compare) → MUST set artifact_index:
   - One artifact hit → use its index N
   - Multiple artifact hits → pick the hit whose descriptor (URL/tool name) best matches the goal topic
 

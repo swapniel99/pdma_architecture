@@ -375,7 +375,6 @@ Query [d]: Search for 'Python asyncio best practices', read the top 3 results, a
 [perception]    [done] Extract key points from the 3rd result
                 [open] Synthesise the common advice from fetched pages
                 [open] Answer the user: Search for 'Python asyncio best practices'...
-[attach]        art:0004 (35399 bytes)
 [decision]      ANSWER: Common advice across all 3 sources: (1) never block event loop,
                 (2) use asyncio.run() as entry point, (3) use gather()/create_task()...
 
@@ -419,3 +418,41 @@ following best practices are consistently recommended:
 | `action.py` | MCP dispatch; large results → ArtifactStore | Never |
 
 State: `state/memory.json` and `state/artifacts/` (gitignored).
+
+---
+
+## Prompt Evaluations
+
+Evaluated against `queries/eval_prompt.md` criteria.
+
+### Perception Prompt (`prompts/perception.txt`)
+
+```json
+{
+  "explicit_reasoning": true,
+  "structured_output": true,
+  "tool_separation": true,
+  "conversation_loop": true,
+  "instructional_framing": true,
+  "internal_self_checks": true,
+  "reasoning_type_awareness": false,
+  "fallbacks": true,
+  "overall_clarity": "Strong multi-turn structure with JSON schema, worked examples, sticky-done safety rule, and explicit pre-output trace step. Reasoning-type tagging omitted — would require schema change and risk breaking JSON parsing."
+}
+```
+
+### Decision Prompt (`prompts/decision.txt`)
+
+```json
+{
+  "explicit_reasoning": true,
+  "structured_output": true,
+  "tool_separation": true,
+  "conversation_loop": true,
+  "instructional_framing": true,
+  "internal_self_checks": true,
+  "reasoning_type_awareness": false,
+  "fallbacks": true,
+  "overall_clarity": "Clear numbered decision process with hard rules (RULE 0/0b/1/2/3), self-check against all rules before output, and fallback guidance for tool errors. Step 2 encourages reasoning-type identification but it is internal-only with no output tag or enforcement — criterion not fully satisfied."
+}
+```

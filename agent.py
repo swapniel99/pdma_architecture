@@ -25,7 +25,7 @@ from schemas import Goal, ToolCall
 MAX_ITERATIONS = 15
 _ANALYSIS_KEYWORDS = {
     "extract", "identify", "analyze", "analyse", "summarize", "summarise",
-    "synthesize", "synthesise", "compare", "from the retrieved",
+    "compare", "from the retrieved",
     "from the fetched", "from the content", "from retrieved", "from fetched",
     "from the page", "from the article", "from the result",
     "from the 1st result", "from the 2nd result", "from the 3rd result",
@@ -151,6 +151,10 @@ async def run(query: str) -> str:
                             if h.get("kind") == "action" and h.get("art_id") and artifacts.exists(h["art_id"]):
                                 attach_id = h["art_id"]
                                 break
+                # Hard override: synthesis goals read from ANSWER history — nullify any attachment
+                _goal_lower = goal.text.lower()
+                if attach_id and ("synthesise" in _goal_lower or "synthesize" in _goal_lower):
+                    attach_id = None
 
                 attached: list[bytes] = []
                 if attach_id and artifacts.exists(attach_id):
