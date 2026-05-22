@@ -44,7 +44,7 @@ def _format_history(history: list[dict]) -> str:
             lines.append(f"TOOL {h.get('tool')} result: {h.get('result', '')[:400]}")
         elif kind == "answer":
             lines.append(f"ANSWER: {h.get('text', '')[:400]}")
-    return "\n".join(lines[-12:])
+    return "\n".join(lines)
 
 
 def _format_attached(attached: list[bytes]) -> str:

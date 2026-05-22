@@ -149,7 +149,7 @@ Now produce the updated goal list as JSON.
     resp = _llm.chat(
         prompt=prompt,
         provider="g",
-        temperature=0.2,
+        temperature=1.0,
         response_format={"type": "json_schema", "schema": schema},
         max_tokens=1024,
     )
