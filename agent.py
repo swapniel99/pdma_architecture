@@ -197,7 +197,7 @@ async def run(query: str) -> str:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python agent6.py \"your query here\"")
+        print("Usage: python agent.py \"your query here\"")
         sys.exit(1)
     query = sys.argv[1]
     answer = asyncio.run(run(query))

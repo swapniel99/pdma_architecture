@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Context
 
-EAG3-06 (Session 6) assignment: build a multi-role cognitive agent using four modules (`memory.py`, `perception.py`, `decision.py`, `action.py`) wired together in `agent6.py`. The MCP server (`mcp_server.py`) and LLM gateway client (`client.py`) are already provided.
+EAG3-06 (Session 6) assignment: build a multi-role cognitive agent using four modules (`memory.py`, `perception.py`, `decision.py`, `action.py`) wired together in `agent.py`. The MCP server (`mcp_server.py`) and LLM gateway client (`client.py`) are already provided.
 
 ## Commands
 
@@ -13,7 +13,7 @@ EAG3-06 (Session 6) assignment: build a multi-role cognitive agent using four mo
 uv run python mcp_server.py
 
 # Run agent against a query
-uv run python agent6.py "your query here"
+uv run python agent.py "your query here"
 
 # Reset state between runs
 bash clear_state.sh
@@ -43,8 +43,8 @@ Requires Python ≥ 3.14. Required env vars in `.env`:
 - **Goals have positional identity** — Perception preserves list order across iterations; no string-id hallucination
 - **Sticky-done** — once a goal is marked done in `prior_goals`, Perception keeps it done regardless of its own output
 
-### Auto-attach behavior (`agent6.py`)
-If a goal has no explicit `attach_artifact_id` from Perception, `agent6.py` auto-attaches based on goal text:
+### Auto-attach behavior (`agent.py`)
+If a goal has no explicit `attach_artifact_id` from Perception, `agent.py` auto-attaches based on goal text:
 - Goal matches `_FETCH_NTH_KEYWORDS` ("fetch the 1st/2nd/3rd search result") → attach most recent **web_search** artifact so Decision can read URLs
 - Goal matches `_ANALYSIS_KEYWORDS` ("extract", "identify", "summarize", "determine", "compare", "based on the", etc.) → attach most recent **any action** artifact
 - Otherwise no auto-attach
@@ -60,7 +60,7 @@ This means analysis goals and "Fetch Nth" goals always receive relevant content 
 - `usage.json` — monthly Tavily search count (hard-capped at 5 results per call)
 - Clean between attempts: `rm -rf state/memory.json state/artifacts/`
 
-### Main loop sketch (`agent6.py`)
+### Main loop sketch (`agent.py`)
 ```
 memory.remember(query)          # classify & persist user facts
 for iter in range(MAX_ITERATIONS):   # MAX_ITERATIONS = 15

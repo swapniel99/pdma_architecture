@@ -1,6 +1,6 @@
 # Session 6 Agent — Multi-Role Cognitive Agent
 
-A multi-role cognitive agent built with four typed modules: `memory.py`, `perception.py`, `decision.py`, and `action.py`, wired together in `agent6.py`. All LLM calls go through the LLM Gateway V3 (`localhost:8101`). Tool dispatch uses MCP stdio transport.
+A multi-role cognitive agent built with four typed modules: `memory.py`, `perception.py`, `decision.py`, and `action.py`, wired together in `agent.py`. All LLM calls go through the LLM Gateway V3 (`localhost:8101`). Tool dispatch uses MCP stdio transport.
 
 ## Prerequisites
 
@@ -25,7 +25,7 @@ A multi-role cognitive agent built with four typed modules: `memory.py`, `percep
 ./run_query.sh d
 ```
 
-Actual queries are in `docs/query_<id>.txt`. `run_query.sh` resets state automatically unless `--no-clear` is passed.
+Actual queries are in `queries/query_<id>.txt`. `run_query.sh` resets state automatically unless `--no-clear` is passed.
 
 ---
 
@@ -35,7 +35,7 @@ Clean state. Expected iterations: 3, limit: 6.
 
 ```
 $ rm -rf state/memory.json state/artifacts/
-$ uv run python agent6.py "Who is Claude Shannon? What are his birth date, death date, and 3 major contributions to information theory?"
+$ uv run python agent.py "Who is Claude Shannon? What are his birth date, death date, and 3 major contributions to information theory?"
 
 [iter 1] Goals:
   ○ Identify who Claude Shannon is
@@ -105,7 +105,7 @@ Clean state. Expected iterations: ~6, limit: 12.
 
 ```
 $ rm -rf state/memory.json state/artifacts/
-$ uv run python agent6.py "I'm visiting Tokyo this Saturday. Based on the weather forecast, recommend one activity from: visit Senso-ji temple, attend outdoor summer festival, or have ramen in a cozy shop. Justify your recommendation."
+$ uv run python agent.py "I'm visiting Tokyo this Saturday. Based on the weather forecast, recommend one activity from: visit Senso-ji temple, attend outdoor summer festival, or have ramen in a cozy shop. Justify your recommendation."
 
 [iter 1] Goals:
   ○ Identify the weather forecast for Tokyo this Saturday.
@@ -151,7 +151,7 @@ Run 1 and Run 2 use the same `state/`. Expected iterations: 4 / 2.
 
 ```
 $ rm -rf state/memory.json state/artifacts/
-$ uv run python agent6.py "My mom's birthday is on 15 May 2026. Please create a reminder file in the sandbox for it, and also note that she likes chocolate cake."
+$ uv run python agent.py "My mom's birthday is on 15 May 2026. Please create a reminder file in the sandbox for it, and also note that she likes chocolate cake."
 
 [iter 1] Goals:
   ○ Create a reminder file for Mom's birthday on May 15, 2026, including the preference for chocolate cake.
@@ -174,7 +174,7 @@ chocolate cake she loves.
 ### Run 2 (same state/, no reset)
 
 ```
-$ uv run python agent6.py "When is mom's birthday?"
+$ uv run python agent.py "When is mom's birthday?"
 
 [iter 1] Goals:
   ○ Identify the date of mom's birthday from the available memory hits
@@ -200,7 +200,7 @@ Clean state. Expected iterations: 5–7, limit: 14.
 
 ```
 $ rm -rf state/memory.json state/artifacts/
-$ uv run python agent6.py "Find the top asyncio best practices by fetching at least 2 web pages about Python asyncio. Then synthesize a numbered list of the top 5 pieces of advice that appear in multiple sources."
+$ uv run python agent.py "Find the top asyncio best practices by fetching at least 2 web pages about Python asyncio. Then synthesize a numbered list of the top 5 pieces of advice that appear in multiple sources."
 
 [iter 1] Goals:
   ○ Fetch at least 2 web pages about Python asyncio best practices.

@@ -32,4 +32,4 @@ fi
 echo "Query [$QUERY_ID]: $QUERY"
 echo ""
 
-uv run python -u agent6.py "$QUERY"
+uv run python -u agent.py "$QUERY"

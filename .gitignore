@@ -15,7 +15,6 @@ wheels/
 *.log
 *.json
 !pop_validation.json
-# docs/
 
 # Virtual environments
 .venv

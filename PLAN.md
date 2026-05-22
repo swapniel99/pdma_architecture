@@ -120,12 +120,12 @@ Pydantic v2 contracts. Two layers.
 
 ---
 
-## Step 8 — `agent6.py`
+## Step 8 — `agent.py`
 
-`ensure_gateway`, `mcp_session` (mcp 1.27.1 stdio `ClientSession` → `mcp_server.py`), `load_tools`, `mcp_tools_for_decision` (MCP schema → flat gateway tool), `run(query)` loop, `final_answer_from(history)`, `MAX_ITERATIONS=15`. CLI `python agent6.py "query"`.
+`ensure_gateway`, `mcp_session` (mcp 1.27.1 stdio `ClientSession` → `mcp_server.py`), `load_tools`, `mcp_tools_for_decision` (MCP schema → flat gateway tool), `run(query)` loop, `final_answer_from(history)`, `MAX_ITERATIONS=15`. CLI `python agent.py "query"`.
 
 **Exit:**
-- `uv run python agent6.py "what time is it in UTC"` → completes, prints a final answer, no traceback.
+- `uv run python agent.py "what time is it in UTC"` → completes, prints a final answer, no traceback.
 - Loop terminates via `obs.all_done` (not via `MAX_ITERATIONS` exhaustion) on that trivial query.
 - `state/memory.json` written after run.
 
@@ -179,7 +179,7 @@ Clean state.
 
 - `.gitignore` += `state/`.
 - `README.md` rewritten: per-query run commands + verbatim clean-state terminal output of all 4.
-- PoP validation JSON: run `docs/eval_prompt.md` evaluator over `prompts/perception.txt` + `prompts/decision.txt`, save JSON review.
+- PoP validation JSON: run `queries/eval_prompt.md` evaluator over `prompts/perception.txt` + `prompts/decision.txt`, save JSON review.
 - YouTube — you record (out of scope).
 
 **Exit:**
