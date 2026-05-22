@@ -48,7 +48,7 @@ def _format_attached(attached: list[bytes]) -> str:
     parts = []
     for i, blob in enumerate(attached):
         text = blob.decode("utf-8", errors="replace")
-        parts.append(f"--- ATTACHMENT {i} ---\n{text[:8000]}\n--- END ATTACHMENT {i} ---")
+        parts.append(f"--- ATTACHMENT {i} ---\n{text}\n--- END ATTACHMENT {i} ---")
     return "\n".join(parts)
 
 
