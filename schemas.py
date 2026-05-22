@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime
 from typing import Any, Literal
 from pydantic import BaseModel, model_validator, field_validator
 import uuid
@@ -9,23 +10,23 @@ import uuid
 class MemoryItem(BaseModel):
     id: str
     kind: Literal["fact", "preference", "tool_outcome", "scratchpad"]
-    keywords: list[str] = []
-    descriptor: str = ""
-    value: str = ""
+    keywords: list[str]
+    descriptor: str
+    value: str
     artifact_id: str | None = None
-    source: str = ""
-    run_id: str = ""
+    source: str
+    run_id: str
     goal_id: str | None = None
     confidence: float = 1.0
-    created_at: str = ""
+    created_at: datetime
 
 
 class Artifact(BaseModel):
     id: str
-    content_type: str = "application/octet-stream"
-    size_bytes: int = 0
-    source: str = ""
-    descriptor: str = ""
+    content_type: str
+    size_bytes: int
+    source: str
+    descriptor: str
 
 
 class Goal(BaseModel):

@@ -19,10 +19,11 @@ uv run python agent6.py "your query here"
 uv run ipython
 
 # Reset state between runs
-rm -rf state/memory.json state/artifacts/
+bash clear_state.sh
+# or: rm -rf state/memory.json state/artifacts/
 ```
 
-Required env vars in `.env`:
+Requires Python ≥ 3.14. Required env vars in `.env`:
 - `TAVILY_API_KEY` — web search primary
 
 ## Architecture
@@ -41,7 +42,7 @@ Required env vars in `.env`:
 - **No direct SDK calls** — all LLM calls go through gateway at `http://localhost:8101` via `client.py`
 - **No third-party agent frameworks** (LangChain, LangGraph, CrewAI)
 - **Perception owns done-marking** — Decision never declares a goal satisfied
-- **Artifact handles** (`art:<sha256-prefix>`) are not paths; Action blocks any tool call that passes one as `path` or `url`
+- **Artifact handles** (`art:<NNNN>`) are not paths; Action blocks any tool call that passes one as `path` or `url`
 - **Goals have positional identity** — Perception preserves list order across iterations; no string-id hallucination
 
 ### State persistence
@@ -72,7 +73,11 @@ for iter in range(MAX_ITER):
 - `provider="g"` — skip router, force Gemini (used by Perception)
 - Response includes `router_decision.fallback_used` and `reasoning_applied` for observability
 
-### Pydantic contracts (`schemas.py` — to be created)
+### Supporting modules
+- `artifacts.py` — `ArtifactStore`: sequential byte store; `put()` returns `art:<NNNN>` handle (counter in `state/artifacts/_counter.json`); files land in `state/artifacts/<id>.{bin,json}`
+- `prompts/` — raw text files loaded by each role at import time: `decision.txt`, `memory_classify.txt`, `perception.txt`
+
+### Pydantic contracts (`schemas.py`)
 ```python
 MemoryItem(id, kind, keywords, descriptor, value, artifact_id, source, run_id, goal_id, confidence, created_at)
 Artifact(id, content_type, size_bytes, source, descriptor)

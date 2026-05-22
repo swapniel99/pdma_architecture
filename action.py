@@ -40,9 +40,10 @@ async def execute(
     text = _collapse_content(getattr(result, "content", result))
 
     if len(text.encode()) > _SIZE_LIMIT:
+        content_type = "text/markdown" if tool_call.name == "fetch_url" else "text/plain"
         art_id = _store.put(
             text.encode(),
-            content_type="text/plain",
+            content_type=content_type,
             source=tool_call.name,
             descriptor=f"{tool_call.name} result",
         )

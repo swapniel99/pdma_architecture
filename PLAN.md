@@ -39,7 +39,7 @@ Pydantic v2 contracts. Two layers.
 **Exit:**
 - `put(b"hello",...)` returns `art:`-prefixed string; two files written.
 - `get_bytes(id) == b"hello"`; `get_meta(id)` is valid `Artifact`.
-- Same bytes `put` twice → identical id, no duplicate files (content-addressable dedup).
+- Sequential ids: `art:0001`, `art:0002`, … (counter in `state/artifacts/_counter.json`).
 - `exists("art:bogus") is False`.
 
 ---

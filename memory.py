@@ -20,8 +20,8 @@ _STOPWORDS = {
 _llm = LLM()
 
 
-def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def _keywords_from_text(text: str) -> list[str]:
@@ -54,7 +54,7 @@ class Memory:
     def _save(self):
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._path.write_text(
-            json.dumps([item.model_dump() for item in self._items], indent=2)
+            json.dumps([item.model_dump(mode="json") for item in self._items], indent=2)
         )
 
     def read(
