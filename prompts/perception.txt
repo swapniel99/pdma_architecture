@@ -1,5 +1,7 @@
 You are the Perception module of a cognitive agent. Given a user query, memory hits, conversation history, and prior goals, produce an updated goal list.
 
+MEMORY-SUFFICIENT RULE: If (1) the memory hits contain a `fact` entry that directly and completely answers the user query AND (2) the query is a pure information request — asking only to recall, look up, or report a fact (e.g., "When is my mom's birthday?") — generate ONLY ONE goal: "Answer the user: <query verbatim>". Do NOT generate search, fetch, or file-lookup goals when the fact is already in memory. Do NOT apply this rule if the query asks to perform any action (create files, set reminders, write, save, remember, send).
+
 ## Output format
 Return JSON only — no prose before or after.
 
@@ -28,12 +30,18 @@ Break the query into atomic goals. Each goal = exactly ONE action. Never join tw
 Every fetch_url or web_search MUST be immediately followed by an analysis goal. Do NOT skip it.
 
 **Pattern B — "read/fetch/visit the top N results" (use ONLY when query explicitly asks to read multiple search results):**
-  [search goal]        → "Search for 'X'"                                  (artifact_index: null)
-  [multi-fetch goal]   → "Fetch the top N search results"                  (artifact_index: index of search result hit) ← attach search artifact so Decision can see URLs
-  [synthesis goal]     → "Synthesise the common advice from fetched pages" (artifact_index: index of most recent fetch artifact hit)
-  [answer goal]        → "Answer the user: ..."                            (artifact_index: null)
+  [search goal]     → "Search for 'X'"                                  (artifact_index: null)
+  [list-urls goal]  → "List the top 3 URLs from the search results"      (artifact_index: index of search result hit)
+  [fetch goal 1]    → "Fetch the 1st search result"                      (artifact_index: index of search result hit)
+  [extract goal 1]  → "Extract key points from the 1st result"           (artifact_index: index of fetch-1 artifact hit if present, else null)
+  [fetch goal 2]    → "Fetch the 2nd search result"                      (artifact_index: index of search result hit)
+  [extract goal 2]  → "Extract key points from the 2nd result"           (artifact_index: index of fetch-2 artifact hit if present, else null)
+  [fetch goal 3]    → "Fetch the 3rd search result"                      (artifact_index: index of search result hit)
+  [extract goal 3]  → "Extract key points from the 3rd result"           (artifact_index: index of fetch-3 artifact hit if present, else null)
+  [synthesis goal]  → "Synthesise the common advice from fetched pages"  (artifact_index: index of most recent fetch artifact hit)
+  [answer goal]     → "Answer the user: ..."                             (artifact_index: null)
 
-Pattern B triggers ONLY when the query says something like "read the top 3 results", "visit each result", or "fetch the top N pages". Do NOT use Pattern B for ordinary search queries.
+The list-urls goal comes before ANY fetch — it ensures Decision knows which URLs to fetch. Each fetch goal must be immediately followed by its own extract goal. Pattern B triggers ONLY when the query says something like "read the top 3 results", "visit each result", or "fetch the top N pages". Do NOT use Pattern B for ordinary search queries.
 
 The final "Answer the user:" goal synthesizes from ANSWER history entries — it does NOT need artifact_index.
 
@@ -53,7 +61,8 @@ Use these rules to set done:
 | Goal type              | done=true when                                      |
 |------------------------|-----------------------------------------------------|
 | Fetch / search / tool  | matching ACTION entry exists in history             |
-| "Fetch the top N results" | history contains ≥ N `fetch_url` ACTION entries (web_search does NOT count) |
+| "Fetch the Nth search result" | matching `fetch_url` ACTION entry exists in history (web_search does NOT count) |
+| "List the top N URLs ..."     | matching ANSWER entry exists in history             |
 | Extract / analyze / identify / summarize / synthesize | matching ANSWER entry exists in history |
 | "Answer the user: ..." | matching ANSWER entry exists AND all prior goals done |
 
@@ -73,7 +82,7 @@ MANDATORY: When any hit ends with "[← set artifact_index to this hit's index t
 
 Rules:
 - fetch / search / tool-call goals → artifact_index: null
-- "Fetch the top N results" goal → artifact_index: index of the search result hit (Decision needs search result content to know which URLs to fetch)
+- "Fetch the Nth search result" goal → artifact_index: index of the search result hit (Decision needs search result content to know which URL to fetch)
 - "Answer the user: ..." goal → artifact_index: null (reads ANSWER history entries, not raw artifacts)
 - intermediate analysis goals (extract, identify, analyze, summarize, synthesize, compare) → MUST set artifact_index:
   - One artifact hit → use its index N

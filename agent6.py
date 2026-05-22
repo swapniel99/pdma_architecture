@@ -28,10 +28,18 @@ _ANALYSIS_KEYWORDS = {
     "synthesize", "synthesise", "compare", "from the retrieved",
     "from the fetched", "from the content", "from retrieved", "from fetched",
     "from the page", "from the article", "from the result",
-    "top 3 search results", "top 3 results", "search results",
+    "from the 1st result", "from the 2nd result", "from the 3rd result",
     "from the search", "from search",
+    "list the top", "list top",
+    "determine", "decide", "recommend", "choose", "select",
+    "most appropriate", "based on the", "which activity", "which option",
 }
 _AUTO_ATTACH = True
+_FETCH_NTH_KEYWORDS = {
+    "fetch the 1st search result", "fetch the 2nd search result",
+    "fetch the 3rd search result", "fetch the 4th search result",
+    "fetch the 5th search result",
+}
 _GATEWAY_URL = "http://localhost:8101"
 
 
@@ -131,7 +139,14 @@ async def run(query: str) -> str:
 
                 attach_id = goal.attach_artifact_id
                 if not attach_id and _AUTO_ATTACH:
-                    if any(kw in goal.text.lower() for kw in _ANALYSIS_KEYWORDS):
+                    goal_lower = goal.text.lower()
+                    if any(kw in goal_lower for kw in _FETCH_NTH_KEYWORDS):
+                        # Attach search artifact so Decision can see URLs to fetch
+                        for h in reversed(history):
+                            if h.get("kind") == "action" and h.get("art_id") and h.get("tool") == "web_search" and artifacts.exists(h["art_id"]):
+                                attach_id = h["art_id"]
+                                break
+                    elif any(kw in goal_lower for kw in _ANALYSIS_KEYWORDS):
                         for h in reversed(history):
                             if h.get("kind") == "action" and h.get("art_id") and artifacts.exists(h["art_id"]):
                                 attach_id = h["art_id"]
