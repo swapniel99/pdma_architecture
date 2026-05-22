@@ -130,9 +130,9 @@ async def run(query: str) -> str:
                 attach_id = goal.attach_artifact_id
                 if not attach_id and _AUTO_ATTACH:
                     if any(kw in goal.text.lower() for kw in _ANALYSIS_KEYWORDS):
-                        for hit in reversed(hits):
-                            if hit.artifact_id and artifacts.exists(hit.artifact_id):
-                                attach_id = hit.artifact_id
+                        for h in reversed(history):
+                            if h.get("kind") == "action" and h.get("art_id") and artifacts.exists(h["art_id"]):
+                                attach_id = h["art_id"]
                                 break
 
                 attached: list[bytes] = []
