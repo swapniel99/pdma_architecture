@@ -238,7 +238,7 @@ class Memory:
         source: str,
         run_id: str,
         goal_id: str | None = None,
-    ) -> MemoryItem:
+    ) -> MemoryItem | None:
         """Classifies and adds a new piece of information to the memory store.
 
         Uses the LLM to classify unstructured text into a structured memory format,
@@ -280,6 +280,9 @@ class Memory:
                     value={"text": raw_text},
                     confidence=0.5,
                 )
+
+        if mc.kind == "none":
+            return None
 
         item = MemoryItem(
             id=str(uuid.uuid4()),
