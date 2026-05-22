@@ -126,7 +126,7 @@ class Memory:
         resp = _llm.chat(
             prompt=raw_text,
             system="Classify this text into a memory item. Respond with valid JSON matching the schema.",
-            provider="g",
+            auto_route='memory',
             response_format={"type": "json_schema", "schema": schema},
             max_tokens=512,
             temperature=0.3,
@@ -145,7 +145,7 @@ class Memory:
                     kind="scratchpad",
                     keywords=_keywords_from_text(raw_text),
                     descriptor=raw_text[:80],
-                    value=raw_text,
+                    value={"text": raw_text},
                     confidence=0.5,
                 )
 
@@ -179,7 +179,7 @@ class Memory:
         kws = list(dict.fromkeys(kws))[:20]
 
         descriptor = f"{tool_call.name}({', '.join(f'{k}={v}' for k,v in list(tool_call.arguments.items())[:3])})"
-        value = result_text[:500] if result_text else ""
+        value = {"result": result_text[:500] if result_text else ""}
 
         item = MemoryItem(
             id=str(uuid.uuid4()),

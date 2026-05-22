@@ -12,7 +12,7 @@ class MemoryItem(BaseModel):
     kind: Literal["fact", "preference", "tool_outcome", "scratchpad"]
     keywords: list[str]
     descriptor: str
-    value: str
+    value: dict[str, Any]
     artifact_id: str | None = None
     source: str
     run_id: str
@@ -86,5 +86,5 @@ class MemoryClassification(BaseModel):
     kind: Literal["fact", "preference", "tool_outcome", "scratchpad"]
     keywords: list[str]
     descriptor: str
-    value: str
+    value: dict[str, Any]
     confidence: float = 1.0
