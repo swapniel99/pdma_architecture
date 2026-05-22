@@ -1,3 +1,12 @@
+"""Module for the agent's Perception cognitive role.
+
+The perception module is responsible for orchestrating task execution by examining the
+user's query, memory hits, and execution history to produce and maintain a structured list
+of goals (the plan) inside an Observation. It manages goal updates, ensures positional goal
+identity (by reusing prior goal IDs), guarantees "sticky-done" goal completions, and
+resolves LLM-perceived artifact references into actual store handles.
+"""
+
 from __future__ import annotations
 import uuid
 from pathlib import Path
@@ -13,6 +22,15 @@ _llm = LLM()
 
 
 def _format_hits(hits: list[MemoryItem]) -> str:
+    """Formats a list of retrieved memory hits into a readable structured text prompt block.
+
+    Args:
+        hits: The list of retrieved MemoryItem records.
+
+    Returns:
+        A formatted string detailing the index, category, descriptor, and value
+        of each hit, along with indications of any associated artifact IDs.
+    """
     if not hits:
         return "No relevant memory hits."
     lines = []
@@ -26,6 +44,15 @@ def _format_hits(hits: list[MemoryItem]) -> str:
 
 
 def _format_history(history: list[dict]) -> str:
+    """Formats the conversation and action execution history into a readable prompt block.
+
+    Args:
+        history: The list of execution step dictionaries.
+
+    Returns:
+        A formatted text summary of tool actions, tool results (truncated to 300 characters),
+        and previous goal answers.
+    """
     if not history:
         return "No history yet."
     lines = []
@@ -41,6 +68,17 @@ def _format_history(history: list[dict]) -> str:
 
 
 def _format_prior_goals(goals: list[Goal]) -> str:
+    """Formats the prior goals list into a structured status report for the LLM.
+
+    Allows the perception model to review previous progress and carry over
+    positional goals.
+
+    Args:
+        goals: The list of prior Goal instances from the previous iteration.
+
+    Returns:
+        A formatted string outlining the index, status (DONE/TODO), and text of each prior goal.
+    """
     if not goals:
         return "No prior goals."
     lines = []
@@ -58,6 +96,25 @@ def observe(
     prior_goals: list[Goal],
     run_id: str,
 ) -> Observation:
+    """Generates the updated set of agent goals by consulting the perception LLM.
+
+    Integrates context, prior goals, and retrieved memory hits into a structured
+    prompt. Calls the LLM to yield an updated goal plan, ensuring:
+      - Positional goal identity: Prior goal IDs are preserved by index alignment.
+      - Sticky-done state: Once a goal is marked done, it cannot be reverted.
+      - Artifact resolution: Maps LLM-selected numeric artifact indexes back to actual
+        artifact handles (e.g., 'art:NNNN') retrieved from memory hits.
+
+    Args:
+        query: The primary user request or objective.
+        hits: A list of relevant MemoryItem hits retrieved for this step.
+        history: The chronological record of action outcomes and answers.
+        prior_goals: The list of Goal items generated in the previous iteration.
+        run_id: The unique identifier of the active execution run.
+
+    Returns:
+        An Observation instance holding the updated, ordered list of Goal items.
+    """
     prompt = f"""{_PROMPT}
 
 ---
@@ -130,12 +187,5 @@ Now produce the updated goal list as JSON.
             done=done,
             attach_artifact_id=attach_id,
         ))
-
-    # Force-attach: if any new goal references artifact from history but perception missed it
-    # (synthesis goal gets attachment from last artifact-producing action)
-    last_art_id: str | None = None
-    for h in history:
-        if h.get("kind") == "action" and h.get("art_id"):
-            last_art_id = h["art_id"]
 
     return Observation(goals=goals)
