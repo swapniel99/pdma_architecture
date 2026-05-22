@@ -151,9 +151,9 @@ async def run(query: str) -> str:
                             if h.get("kind") == "action" and h.get("art_id") and artifacts.exists(h["art_id"]):
                                 attach_id = h["art_id"]
                                 break
-                # Hard override: synthesis goals read from ANSWER history — nullify any attachment
+                # Hard override: these goals read from ANSWER history — never need raw artifacts
                 _goal_lower = goal.text.lower()
-                if attach_id and ("synthesise" in _goal_lower or "synthesize" in _goal_lower):
+                if attach_id and _goal_lower.startswith("answer the user:"):
                     attach_id = None
 
                 attached: list[bytes] = []

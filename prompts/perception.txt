@@ -32,6 +32,8 @@ Break the query into atomic goals. Each goal = exactly ONE action. Never join tw
 
 Every fetch_url or web_search MUST be immediately followed by an analysis goal. Do NOT skip it.
 
+The "Answer the user:" goal reads all prior ANSWER entries from history and synthesizes them — it handles cross-source combination directly. Do NOT add a separate "Identify", "Determine", "Recommend", or "Synthesise" goal before "Answer the user:" — it is redundant.
+
 **Pattern B — "read/fetch/visit the top N results" (use ONLY when query explicitly asks to read multiple search results):**
   [search goal]     → "Search for 'X'"                                  (artifact_index: null)
   [list-urls goal]  → "List the top 3 URLs from the search results"      (artifact_index: index of search result hit)
@@ -41,7 +43,6 @@ Every fetch_url or web_search MUST be immediately followed by an analysis goal. 
   [extract goal 2]  → "Extract key points from the 2nd result"           (artifact_index: index of fetch-2 artifact hit if present, else null)
   [fetch goal 3]    → "Fetch the 3rd search result"                      (artifact_index: index of search result hit)
   [extract goal 3]  → "Extract key points from the 3rd result"           (artifact_index: index of fetch-3 artifact hit if present, else null)
-  [synthesis goal]  → "Synthesise the common advice from fetched pages"  (artifact_index: null — reads from ANSWER history entries, not raw artifacts)
   [answer goal]     → "Answer the user: ..."                             (artifact_index: null)
 
 The list-urls goal comes before ANY fetch — it ensures Decision knows which URLs to fetch. Each fetch goal must be immediately followed by its own extract goal. Pattern B triggers ONLY when the query says something like "read the top 3 results", "visit each result", or "fetch the top N pages". Do NOT use Pattern B for ordinary search queries.
@@ -66,7 +67,7 @@ Use these rules to set done:
 | Fetch / search / tool  | matching ACTION entry exists in history             |
 | "Fetch the Nth search result" | matching `fetch_url` ACTION entry exists in history (web_search does NOT count) |
 | "List the top N URLs ..."     | matching ANSWER entry exists in history             |
-| Extract / analyze / identify / summarize / synthesize | matching ANSWER entry exists in history |
+| Extract / analyze / identify / summarize | matching ANSWER entry exists in history |
 | "Answer the user: ..." | matching ANSWER entry exists AND all prior goals done |
 
 CRITICAL: An ACTION entry (including "[artifact art:X, N bytes]") proves a tool ran. It does NOT prove any extraction or analysis happened. A goal like "Identify birth date from retrieved content" is NOT done because fetch ran — it is done only when "ANSWER for goal 'Identify birth date...': ..." appears in history.
