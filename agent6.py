@@ -1,9 +1,15 @@
 from __future__ import annotations
 import asyncio
 import json
+import logging
 import sys
 import uuid
 from typing import Any
+
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(name)s %(levelname)s %(message)s",
+)
 
 import httpx
 from mcp import ClientSession, StdioServerParameters
@@ -17,6 +23,12 @@ import decision
 from schemas import Goal, ToolCall
 
 MAX_ITERATIONS = 15
+_ANALYSIS_KEYWORDS = {
+    "extract", "identify", "analyze", "analyse", "summarize", "summarise",
+    "synthesize", "synthesise", "compare", "from the retrieved",
+    "from the fetched", "from the content", "from retrieved", "from fetched",
+    "from the page", "from the article", "from the result",
+}
 _GATEWAY_URL = "http://localhost:8101"
 
 
@@ -114,22 +126,13 @@ async def run(query: str) -> str:
                 if goal is None:
                     break
 
-                # Auto-attach: if no explicit attachment, use the most recent fetch_url artifact
-                # Only fires for goals that require content analysis (disabled: testing Perception explicit attach)
-                AUTO_ATTACH_ENABLED = False
-                AUTO_ATTACH_KEYWORDS = {
-                    "extract", "identify", "list", "analyze", "summarize", "answer",
-                    "find", "tell", "synthesise", "synthesize", "compare", "decide",
-                }
                 attach_id = goal.attach_artifact_id
-                if not attach_id and AUTO_ATTACH_ENABLED:
-                    if any(w in goal.text.lower() for w in AUTO_ATTACH_KEYWORDS):
-                        for h in reversed(history):
-                            if h.get("kind") == "action" and h.get("art_id") and h.get("tool") == "fetch_url":
-                                candidate = h["art_id"]
-                                if artifacts.exists(candidate):
-                                    attach_id = candidate
-                                    break
+                if not attach_id:
+                    if any(kw in goal.text.lower() for kw in _ANALYSIS_KEYWORDS):
+                        for hit in reversed(hits):
+                            if hit.artifact_id and artifacts.exists(hit.artifact_id):
+                                attach_id = hit.artifact_id
+                                break
 
                 attached: list[bytes] = []
                 if attach_id and artifacts.exists(attach_id):

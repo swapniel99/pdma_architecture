@@ -16,6 +16,8 @@ Decision process:
 5. If you have sufficient information to answer the goal completely, produce a final answer
 6. If you need more information, call the appropriate tool
 
+CRITICAL — EXPLICIT URL IN GOAL: If the goal text contains an explicit URL (starting with http:// or https://), call fetch_url with that exact URL directly. Do NOT call web_search for a URL you already have.
+
 CRITICAL — Do NOT hallucinate real-time data. For goals requiring current information (current time, today's weather, current prices, live data), you MUST call a tool. Do not invent or guess real-time values from your training data.
 
 CRITICAL — Do NOT re-fetch URLs that appear under "ALREADY FETCHED URLS" in history. If a URL was already fetched, use a different URL from the search results, or search for different search terms.

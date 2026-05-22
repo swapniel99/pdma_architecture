@@ -8,10 +8,15 @@ resolves LLM-perceived artifact references into actual store handles.
 """
 
 from __future__ import annotations
+import logging
 import uuid
 from pathlib import Path
 
 from client import LLM
+
+log = logging.getLogger(__name__)
+# log.setLevel(logging.DEBUG)
+
 from schemas import (
     Goal, Observation, MemoryItem,
     PerceptionResponse, PerceivedGoal,
@@ -133,14 +138,19 @@ PRIOR GOALS (preserve order and IDs):
 Now produce the updated goal list as JSON.
 """
 
+    log.debug("hits_section=\n%s", _format_hits(hits))
+    log.debug("history_section=\n%s", _format_history(history))
+
     schema = PerceptionResponse.model_json_schema()
     resp = _llm.chat(
         prompt=prompt,
         provider="g",
-        temperature=1.0,
+        temperature=0.2,
         response_format={"type": "json_schema", "schema": schema},
         max_tokens=1024,
     )
+
+    log.debug("raw_resp=%s", resp)
 
     parsed = resp.get("parsed")
     if parsed and isinstance(parsed, dict):
@@ -180,6 +190,7 @@ Now produce the updated goal list as JSON.
             idx = pg.artifact_index
             if 0 <= idx < len(hits):
                 attach_id = hits[idx].artifact_id  # may be None if hit has no artifact
+        log.debug("goal[%d] text=%r done=%s artifact_index=%s attach_id=%s", i, pg.text, pg.done, pg.artifact_index, attach_id)
 
         goals.append(Goal(
             id=goal_id,

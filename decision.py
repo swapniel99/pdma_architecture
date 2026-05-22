@@ -1,8 +1,13 @@
 from __future__ import annotations
+import logging
 from pathlib import Path
 from typing import Any
 
 from client import LLM
+
+log = logging.getLogger(__name__)
+# log.setLevel(logging.DEBUG)
+
 from schemas import Goal, MemoryItem, DecisionOutput, ToolCall
 
 _PROMPT = (Path(__file__).parent / "prompts" / "decision.txt").read_text()
@@ -59,6 +64,7 @@ def next_step(
     history: list[dict],
     mcp_tools: list[dict],
 ) -> DecisionOutput:
+    log.debug("goal=%r attached_sizes=%s", goal.text, [len(b) for b in attached])
     attached_section = _format_attached(attached)
     attached_text = f"\nATTACHED ARTIFACTS:\n{attached_section}" if attached_section else ""
 
@@ -96,6 +102,7 @@ Decide: call a tool or produce a final answer.
             else:
                 raise
 
+    log.debug("resp_keys=%s has_tool_calls=%s text_preview=%r", list(resp.keys()), bool(resp.get("tool_calls")), resp.get("text", "")[:100])
     tool_calls = resp.get("tool_calls") or []
     if tool_calls:
         first = tool_calls[0]
