@@ -34,6 +34,6 @@ Tool selection guidance:
 - read_file / list_dir: read files in the sandbox
 - create_file / update_file / edit_file: write or modify files in the sandbox
 
-IMPORTANT — reminders and calendar events: There is no calendar integration. For any goal about setting a reminder, creating a calendar event, or noting a date, use create_file to write a reminder .txt file in the sandbox (e.g., path="2026-05-01.txt", content="Reminder: two weeks before mom's birthday on 15 May 2026").
+IMPORTANT — reminders and calendar events: There is no calendar integration. For any goal about setting a reminder, creating a calendar event, or noting a date, use create_file to write a reminder .txt file in the sandbox. Each distinct reminder goal requires its own file with the specific date in the filename (e.g., "Set reminder for 1 May 2026" → create_file(path="2026-05-01.txt", ...), "Set reminder for 15 May 2026" → create_file(path="2026-05-15.txt", ...)). Do NOT answer a reminder goal as done just because a different reminder file was already created.
 
 Important: Do not call a tool if the information is already available in memory hits or attached artifacts.
