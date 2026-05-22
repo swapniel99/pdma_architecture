@@ -1,3 +1,10 @@
+"""Module for managing the agent's long-term memory store.
+
+Memory entries consist of key-value attributes classified by their categories,
+with support for rapid keyword overlap queries, structured filtering, and LLM-driven
+relevance ranking for context window optimization.
+"""
+
 from __future__ import annotations
 import json
 import uuid
@@ -21,10 +28,26 @@ _llm = LLM()
 
 
 def _now() -> datetime:
+    """Returns the current timezone-aware UTC datetime.
+
+    Returns:
+        The current datetime with timezone set to UTC.
+    """
     return datetime.now(timezone.utc)
 
 
 def _keywords_from_text(text: str) -> list[str]:
+    """Extracts unique, lowercased alphanumeric keywords from the given text.
+
+    Filters out standard grammatical stopwords and limits the returned list
+    to the top 20 keywords.
+
+    Args:
+        text: The source string to extract keywords from.
+
+    Returns:
+        A list of up to 20 unique keyword strings.
+    """
     words = text.lower().split()
     seen = set()
     out = []
@@ -37,21 +60,49 @@ def _keywords_from_text(text: str) -> list[str]:
 
 
 def _overlap_score(kw_set: set[str], query_kws: set[str]) -> int:
+    """Calculates the size of the intersection between two keyword sets.
+
+    Args:
+        kw_set: The keywords associated with a memory item.
+        query_kws: The keywords extracted from the search query/context.
+
+    Returns:
+        The number of matching keywords common to both sets.
+    """
     return len(kw_set & query_kws)
 
 
 class Memory:
+    """A typed key-value persistent memory store for the cognitive agent.
+
+    Allows loading, saving, querying, and recording facts, preferences,
+    tool execution outcomes, and scratchpad thoughts.
+    """
+
     def __init__(self, path: Path = _MEMORY_PATH):
+        """Initializes the memory store and loads existing entries from disk.
+
+        Args:
+            path: The filesystem path to the persistent JSON memory file.
+        """
         self._path = path
         self._items: list[MemoryItem] = []
         self._load()
 
     def _load(self):
+        """Loads and parses persisted memory items from the JSON file on disk.
+
+        Instantiates stored dictionaries back into `MemoryItem` Pydantic models.
+        """
         if self._path.exists():
             raw = json.loads(self._path.read_text())
             self._items = [MemoryItem(**item) for item in raw]
 
     def _save(self):
+        """Serializes and writes all current memory items to the persistent JSON file.
+
+        Creates parent directories automatically if they do not exist.
+        """
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._path.write_text(
             json.dumps([item.model_dump(mode="json") for item in self._items], indent=2)
@@ -64,6 +115,21 @@ class Memory:
         kinds: list[str] | None = None,
         top_k: int = 8,
     ) -> list[MemoryItem]:
+        """Performs a fast, non-LLM keyword-overlap search across memory candidates.
+
+        Combines keywords from both the query and the last five history items to score
+        matching candidates based on keyword overlap.
+
+        Args:
+            query: The current query/search string.
+            history: The list of preceding execution step dictionaries.
+            kinds: Optional list of memory kinds to restrict candidates to.
+            top_k: The maximum number of high-scoring memory items to return.
+
+        Returns:
+            A list of up to `top_k` matching MemoryItem instances, sorted in descending
+            order of overlap score.
+        """
         query_kws = set(_keywords_from_text(query))
         history_text = " ".join(
             str(h.get("content") or h.get("text") or "") for h in history[-5:]
@@ -77,7 +143,7 @@ class Memory:
 
         scored = []
         for item in candidates:
-            item_kws = set(item.keywords)
+            item_kws = set(k.lower() for k in item.keywords) | set(_keywords_from_text(item.descriptor))
             score = _overlap_score(item_kws, all_kws)
             if score > 0:
                 scored.append((score, item))
@@ -91,6 +157,16 @@ class Memory:
         goal_id: str | None = None,
         recent: int | None = None,
     ) -> list[MemoryItem]:
+        """Performs structured filtering of memory items without keyword scoring.
+
+        Args:
+            kinds: Optional list of memory kinds to include (e.g., ['fact']).
+            goal_id: Optional goal ID to filter by.
+            recent: Optional integer to limit results to the most recent N items.
+
+        Returns:
+            A filtered list of MemoryItem instances matching the criteria.
+        """
         result = self._items
         if kinds:
             result = [i for i in result if i.kind in kinds]
@@ -106,13 +182,53 @@ class Memory:
         kinds: list[str] | None = None,
         top_k: int = 5,
     ) -> list[MemoryItem]:
-        schema = MemoryClassification.model_json_schema()
+        """Finds the most semantically relevant memories using LLM ranking.
+
+        If the total memory pool is large (>20 entries), a keyword search pre-filter is
+        applied first to protect the prompt context window. The LLM then ranks the
+        remaining candidates. Falls back to keyword search on ranking failures.
+
+        Args:
+            query: The search query to assess relevance against.
+            kinds: Optional list of memory kinds to restrict search.
+            top_k: The maximum number of relevant memories to retrieve.
+
+        Returns:
+            A list of up to `top_k` ranked MemoryItem instances.
+        """
+        candidates = self._items
+        if kinds:
+            candidates = [i for i in candidates if i.kind in kinds]
+        if not candidates:
+            return []
+
+        # Pre-filter large pools with keyword search to keep prompt small
+        if len(candidates) > 20:
+            candidates = self.read(query, [], kinds=kinds, top_k=20)
+
+        lines = [f"[{i}] {c.descriptor}: {c.value}" for i, c in enumerate(candidates)]
         resp = _llm.chat(
-            prompt=f"Find memory items most relevant to: {query}",
+            prompt=(
+                f"Query: {query}\n\nCandidates:\n" + "\n".join(lines) +
+                f"\n\nReturn a JSON array of the {top_k} most relevant indices (integers only). Example: [0,2]"
+            ),
             auto_route="memory",
-            max_tokens=512,
+            max_tokens=64,
+            temperature=0.1,
         )
-        # fallback: keyword search
+
+        try:
+            text = resp.get("text", "")
+            start = text.find("[")
+            end = text.rfind("]") + 1
+            if start != -1 and end > start:
+                indices = json.loads(text[start:end])
+                result = [candidates[i] for i in indices if isinstance(i, int) and 0 <= i < len(candidates)]
+                if result:
+                    return result[:top_k]
+        except Exception:
+            pass
+
         return self.read(query, [], kinds=kinds, top_k=top_k)
 
     def remember(
@@ -122,6 +238,21 @@ class Memory:
         run_id: str,
         goal_id: str | None = None,
     ) -> MemoryItem:
+        """Classifies and adds a new piece of information to the memory store.
+
+        Uses the LLM to classify unstructured text into a structured memory format,
+        extracting keywords, kind, confidence, and a descriptor. Falls back to a
+        scratchpad classification if LLM parsing fails.
+
+        Args:
+            raw_text: The raw text string to remember and classify.
+            source: The originating source of the text (e.g., 'user', 'perception').
+            run_id: The active agent execution run identifier.
+            goal_id: Optional ID of the goal during which this memory was created.
+
+        Returns:
+            The newly created and persisted MemoryItem instance.
+        """
         schema = MemoryClassification.model_json_schema()
         resp = _llm.chat(
             prompt=raw_text,
@@ -173,6 +304,21 @@ class Memory:
         run_id: str,
         goal_id: str | None = None,
     ) -> MemoryItem:
+        """Records the outcome of a tool execution as a typed memory item.
+
+        Constructs a structured `tool_outcome` MemoryItem without calling the LLM,
+        summarizing arguments, result snippets, and any associated artifact IDs.
+
+        Args:
+            tool_call: The ToolCall instance containing the tool name and arguments.
+            result_text: The return value or outcome text from executing the tool.
+            artifact_id: The ID of an out-of-band artifact if the result was large.
+            run_id: The active agent execution run identifier.
+            goal_id: Optional ID of the goal associated with this tool execution.
+
+        Returns:
+            The recorded and persisted `tool_outcome` MemoryItem.
+        """
         kws = _keywords_from_text(tool_call.name)
         for v in tool_call.arguments.values():
             kws += _keywords_from_text(str(v))
