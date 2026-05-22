@@ -51,7 +51,7 @@ Pydantic v2 contracts. Two layers.
 - `read(query,history,kinds=None,top_k=8)` — keyword overlap, stopword filter, no LLM.
 - `filter(kinds=,goal_id=,recent=N)` — no LLM.
 - `relevant(query,kinds=,top_k=5)` — `auto_route="memory"`.
-- `remember(raw_text,source,run_id,goal_id=None)` — classify call (`provider="g"`, `response_format=MemoryClassification`).
+- `remember(raw_text,source,run_id,goal_id=None)` — classify call (`response_format=MemoryClassification`).
 - `record_outcome(tool_call,result_text,artifact_id,run_id,goal_id)` — no LLM, keywords from tool name+args.
 - Load on init, save after every mutation.
 
@@ -85,7 +85,7 @@ Pydantic v2 contracts. Two layers.
 
 **Exit:**
 - Three files exist, non-empty.
-- Perception prompt text contains all 4 obligations; Decision contains all 3 rules.
+- Perception prompt text contains all 4 obligations; Decision contains all 5 rules (RULE 0, RULE 0b, RULE 1, RULE 2, RULE 3).
 
 ---
 

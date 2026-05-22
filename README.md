@@ -11,22 +11,21 @@ A multi-role cognitive agent built with four typed modules: `memory.py`, `percep
 ## Run Commands
 
 ```bash
-# Reset state between runs
-rm -rf state/memory.json state/artifacts/
-
 # Query A — Claude Shannon Wikipedia
-uv run python agent6.py "Who is Claude Shannon? What are his birth date, death date, and 3 major contributions to information theory?"
+./run_query.sh a
 
 # Query B — Tokyo weekend activities
-uv run python agent6.py "I'm visiting Tokyo this Saturday. Based on the weather forecast, recommend one activity from: visit Senso-ji temple, attend outdoor summer festival, or have ramen in a cozy shop. Justify your recommendation."
+./run_query.sh b
 
 # Query C — Mom's birthday (2 runs, same state/)
-uv run python agent6.py "My mom's birthday is on 15 May 2026. Please create a reminder file in the sandbox for it, and also note that she likes chocolate cake."
-uv run python agent6.py "When is mom's birthday?"
+./run_query.sh c1
+./run_query.sh c2 --no-clear   # --no-clear preserves C1 memory
 
-# Query D — asyncio synthesis
-uv run python agent6.py "Find the top asyncio best practices by fetching at least 2 web pages about Python asyncio. Then synthesize a numbered list of the top 5 pieces of advice that appear in multiple sources."
+# Query D — asyncio synthesis (Pattern B: fetch top 3 results)
+./run_query.sh d
 ```
+
+Actual queries are in `docs/query_<id>.txt`. `run_query.sh` resets state automatically unless `--no-clear` is passed.
 
 ---
 

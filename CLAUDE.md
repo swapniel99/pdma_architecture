@@ -15,9 +15,6 @@ uv run python mcp_server.py
 # Run agent against a query
 uv run python agent6.py "your query here"
 
-# Dev REPL
-uv run ipython
-
 # Reset state between runs
 bash clear_state.sh
 # or: rm -rf state/memory.json state/artifacts/
@@ -34,7 +31,7 @@ Requires Python ≥ 3.14. Required env vars in `.env`:
 |---|---|---|
 | `memory.py` | Typed KV store. `read(query, history)` = keyword search, no LLM. `remember(text)` = one classification call. `record_outcome(tool_call, result)` = no LLM. | Only on ambiguous writes |
 | `perception.py` | Orchestrator. Emits `Observation` (goal list + done flags). Pinned to Gemini via `provider="g"`, `temperature=1.0`. | Every iteration |
-| `decision.py` | Returns `DecisionOutput`: either `answer` (str) or `tool_call` (ToolCall). One goal per call, never both outputs. | Every iteration |
+| `decision.py` | Returns `DecisionOutput`: either `answer` (str) or `tool_call` (ToolCall). One goal per call, never both outputs. Retries up to 3× with 3 s sleep on gateway error. | Every iteration |
 | `action.py` | Pure MCP dispatch. Stores payloads >4 KB in `ArtifactStore`; returns descriptor. No LLM. | Never |
 
 ### Key invariants
@@ -44,27 +41,42 @@ Requires Python ≥ 3.14. Required env vars in `.env`:
 - **Perception owns done-marking** — Decision never declares a goal satisfied
 - **Artifact handles** (`art:<NNNN>`) are not paths; Action blocks any tool call that passes one as `path` or `url`
 - **Goals have positional identity** — Perception preserves list order across iterations; no string-id hallucination
+- **Sticky-done** — once a goal is marked done in `prior_goals`, Perception keeps it done regardless of its own output
+
+### Auto-attach behavior (`agent6.py`)
+If a goal has no explicit `attach_artifact_id` from Perception, `agent6.py` auto-attaches based on goal text:
+- Goal matches `_FETCH_NTH_KEYWORDS` ("fetch the 1st/2nd/3rd search result") → attach most recent **web_search** artifact so Decision can read URLs
+- Goal matches `_ANALYSIS_KEYWORDS` ("extract", "identify", "summarize", "determine", "compare", "based on the", etc.) → attach most recent **any action** artifact
+- Otherwise no auto-attach
+
+This means analysis goals and "Fetch Nth" goals always receive relevant content without Perception needing to wire `artifact_index` explicitly.
+
+### Final answer synthesis
+`_synthesize_final_answer` always runs after the loop exits (whether via `all_done`, `MAX_ITERATIONS=15`, or no unfinished goals). It scans history for tool results and partial answers, loads full artifact bytes (up to 6 000 chars), and calls the gateway (`auto_route="decision"`) to produce a complete response.
 
 ### State persistence
 - `state/memory.json` — all MemoryItems (facts, preferences, tool_outcomes, scratchpad)
 - `state/artifacts/<id>.bin` + `<id>.json` — raw bytes + metadata for large tool outputs
+- `usage.json` — monthly Tavily search count (hard-capped at 5 results per call)
 - Clean between attempts: `rm -rf state/memory.json state/artifacts/`
 
 ### Main loop sketch (`agent6.py`)
 ```
 memory.remember(query)          # classify & persist user facts
-for iter in range(MAX_ITER):
+for iter in range(MAX_ITERATIONS):   # MAX_ITERATIONS = 15
     hits = memory.read(query, history)
     obs  = perception.observe(query, hits, history, prior_goals, run_id)
     if obs.all_done: break
     goal = obs.next_unfinished()
-    attached = [artifacts.get_bytes(goal.attach_artifact_id)] if goal.attach_artifact_id else []
+    # auto-attach last fetch_url artifact if goal has no explicit attachment
+    attached = [artifacts.get_bytes(attach_id)] if attach_id else []
     out  = decision.next_step(goal, hits, attached, history, tools)
     if out.is_answer:
         history.append({"kind": "answer", ...}); continue
     result_text, art_id = await action.execute(session, out.tool_call)
     memory.record_outcome(...)
     history.append({"kind": "action", ...})
+return await _synthesize_final_answer(query, history, mem)
 ```
 
 ### LLM Gateway V3 (`client.py`)
@@ -78,6 +90,8 @@ for iter in range(MAX_ITER):
 - `prompts/` — raw text files loaded by each role at import time: `decision.txt`, `memory_classify.txt`, `perception.txt`
 
 ### Pydantic contracts (`schemas.py`)
+
+Inter-role contracts (passed between modules):
 ```python
 MemoryItem(id, kind, keywords, descriptor, value, artifact_id, source, run_id, goal_id, confidence, created_at)
 Artifact(id, content_type, size_bytes, source, descriptor)
@@ -87,6 +101,19 @@ ToolCall(name, arguments)
 DecisionOutput(answer, tool_call)   # exactly one populated
 ```
 
+Wire models (LLM `response_format` only — never passed between roles):
+```python
+PerceivedGoal(text, done, artifact_index)    # perception LLM output; artifact_index resolved to art: handle
+PerceptionResponse(goals)                    # wraps list[PerceivedGoal]
+MemoryClassification(kind, keywords, descriptor, value, confidence)  # memory LLM output
+```
+
+### Memory API
+- `read(query, history, kinds?, top_k=8)` — keyword overlap score, no LLM
+- `filter(kinds?, goal_id?, recent?)` — structured filter without scoring
+- `remember(text, source, run_id, goal_id?)` — one LLM call to classify
+- `record_outcome(tool_call, result_text, artifact_id, run_id, goal_id?)` — no LLM
+
 ### MCP tools (9 total in `mcp_server.py`)
 `web_search`, `fetch_url`, `get_time`, `currency_convert`, `read_file`, `list_dir`, `create_file`, `update_file`, `edit_file`
 
@@ -94,11 +121,13 @@ File tools are sandboxed under `./sandbox/`. `fetch_url` uses crawl4ai (headless
 
 ## Four target queries
 
-| Query | Key behaviour exercised | Expected iterations |
-|---|---|---|
-| A: Claude Shannon Wikipedia | Artifact attach — fetch then extract from 250KB page | 3 |
-| B: Tokyo weekend activities | Multi-goal + weather memory carryover | ~6 |
-| C: Mom's birthday (2 runs) | Durable memory across runs; run 1 writes fact, run 2 reads it | 4 / 2 |
-| D: asyncio best practices | Multi-artifact fetch + synthesis | 5–7 |
+| Query | Key behaviour exercised | Expected iterations | Limit (2×) |
+|---|---|---|---|
+| A: Claude Shannon Wikipedia | Explicit URL fetch → extract from 270KB artifact | 3 | 6 |
+| B: Tokyo weekend activities | Multi-goal, weather search, determine best activity | ~8 | 12 |
+| C1: Mom's birthday (run 1) | Action query — creates 2 reminder files, stores fact in memory | ~4 | 8 |
+| C2: Mom's birthday (run 2) | MEMORY-SUFFICIENT RULE — answers from memory, no tools | 2 | 4 |
+| D: asyncio best practices | Pattern B — list URLs, fetch 3 pages, extract each, synthesise | ~10 | 14 |
 
-Queries exceeding **2× expected iteration count** are not passing — tune prompts.
+Run with `./run_query.sh <a|b|c1|c2|d>`. Use `--no-clear` for C2 (must preserve C1 memory).
+Queries exceeding limit are not passing — tune prompts.
