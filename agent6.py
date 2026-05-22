@@ -1,5 +1,6 @@
 from __future__ import annotations
 import asyncio
+import json
 import sys
 import uuid
 from typing import Any
@@ -47,65 +48,9 @@ def mcp_tools_for_decision(tools: list[Any]) -> list[dict]:
     return result
 
 
-async def _synthesize_final_answer(query: str, history: list[dict], mem: Memory) -> str:
-    """Call LLM to synthesize a final answer from all collected history."""
-    from client import LLM
-    artifacts = ArtifactStore()
-    parts = []
-    for h in history:
-        if h.get("kind") == "action" and h.get("result"):
-            result = h["result"]
-            art_id = h.get("art_id")
-            if art_id and artifacts.exists(art_id):
-                # Load full artifact content (up to 6000 chars)
-                content = artifacts.get_bytes(art_id).decode("utf-8", errors="replace")[:6000]
-                parts.append(f"Tool {h.get('tool')} full result:\n{content}")
-            else:
-                parts.append(f"Tool {h.get('tool')} result: {result[:800]}")
-        elif h.get("kind") == "answer" and h.get("text"):
-            text = h["text"]
-            # Skip meta-commentary answers
-            meta_patterns = ["Since we already", "I was unable", "based on available information"]
-            if not any(text.startswith(p) for p in meta_patterns) and len(text) > 100:
-                parts.append(f"Partial answer: {text[:600]}")
-
-    context = "\n\n".join(parts)
-    if not context:
-        return "No answer produced."
-
-    resp = LLM().chat(
-        prompt=(
-            f"Based on the research results below, provide a complete, specific answer to: {query}\n\n"
-            f"Include all specific facts (dates, names, figures) found in the results. "
-            f"Write at least 3 complete sentences.\n\nRESEARCH RESULTS:\n{context}"
-        ),
-        auto_route="decision",
-        max_tokens=1024,
-        temperature=0.3,
-    )
-    return resp.get("text", context)
-
-
-def final_answer_from(history: list[dict], query: str = "") -> str:
+def final_answer_from(history: list[dict]) -> str:
     answers = [h["text"] for h in history if h.get("kind") == "answer" and h.get("text")]
-    if answers:
-        return answers[-1]
-    # fallback: synthesize from tool results
-    parts = []
-    for h in history:
-        if h.get("kind") == "action" and h.get("result"):
-            parts.append(f"Tool {h.get('tool')}: {h['result'][:600]}")
-    if parts:
-        from client import LLM
-        context = "\n".join(parts)
-        resp = LLM().chat(
-            prompt=f"Based on these tool results, answer the query: {query}\n\nResults:\n{context}",
-            auto_route="decision",
-            max_tokens=1024,
-            temperature=0.5,
-        )
-        return resp.get("text", context)
-    return "No answer produced."
+    return answers[-1] if answers else "No answer produced."
 
 
 async def run(query: str) -> str:
@@ -139,6 +84,9 @@ async def run(query: str) -> str:
             for iteration in range(MAX_ITERATIONS):
                 hits = mem.read(query, history)
 
+                print(f"\n─── iter {iteration+1} ───")
+                print(f"[memory.read]   {len(hits)} hit{'s' if len(hits) != 1 else ''}")
+
                 obs = perception.observe(
                     query=query,
                     hits=hits,
@@ -148,34 +96,46 @@ async def run(query: str) -> str:
                 )
                 prior_goals = obs.goals
 
-                print(f"\n[iter {iteration+1}] Goals:")
-                for g in obs.goals:
-                    status = "✓" if g.done else "○"
-                    attach = f" [attach={g.attach_artifact_id}]" if g.attach_artifact_id else ""
-                    print(f"  {status} {g.text}{attach}")
+                perc_prefix = "[perception]    "
+                perc_indent = " " * len(perc_prefix)
+                for i, g in enumerate(obs.goals):
+                    status = "[done]" if g.done else "[open]"
+                    line_prefix = perc_prefix if i == 0 else perc_indent
+                    print(f"{line_prefix}{status} {g.text}")
+                    if g.attach_artifact_id:
+                        print(f"{perc_indent}  attach={g.attach_artifact_id}")
 
                 if obs.all_done:
-                    print(f"[iter {iteration+1}] All goals done. Stopping.")
+                    n = len(obs.goals)
+                    print(f"\n[done] all {n} goal{'s' if n != 1 else ''} satisfied")
                     break
 
                 goal = obs.next_unfinished()
                 if goal is None:
                     break
 
-                # Retrieve attached artifact bytes
                 # Auto-attach: if no explicit attachment, use the most recent fetch_url artifact
+                # Only fires for goals that require content analysis (disabled: testing Perception explicit attach)
+                AUTO_ATTACH_ENABLED = False
+                AUTO_ATTACH_KEYWORDS = {
+                    "extract", "identify", "list", "analyze", "summarize", "answer",
+                    "find", "tell", "synthesise", "synthesize", "compare", "decide",
+                }
                 attach_id = goal.attach_artifact_id
-                if not attach_id:
-                    for h in reversed(history):
-                        if h.get("kind") == "action" and h.get("art_id") and h.get("tool") == "fetch_url":
-                            candidate = h["art_id"]
-                            if artifacts.exists(candidate):
-                                attach_id = candidate
-                                break
+                if not attach_id and AUTO_ATTACH_ENABLED:
+                    if any(w in goal.text.lower() for w in AUTO_ATTACH_KEYWORDS):
+                        for h in reversed(history):
+                            if h.get("kind") == "action" and h.get("art_id") and h.get("tool") == "fetch_url":
+                                candidate = h["art_id"]
+                                if artifacts.exists(candidate):
+                                    attach_id = candidate
+                                    break
 
                 attached: list[bytes] = []
                 if attach_id and artifacts.exists(attach_id):
-                    attached.append(artifacts.get_bytes(attach_id))
+                    blob = artifacts.get_bytes(attach_id)
+                    attached.append(blob)
+                    print(f"[attach]        {attach_id} ({len(blob)} bytes)")
 
                 out = decision.next_step(
                     goal=goal,
@@ -186,7 +146,7 @@ async def run(query: str) -> str:
                 )
 
                 if out.is_answer:
-                    print(f"[iter {iteration+1}] Answer: {out.answer[:200]}")
+                    print(f"[decision]      ANSWER: {out.answer[:200]}")
                     history.append({
                         "kind": "answer",
                         "goal_id": goal.id,
@@ -195,9 +155,9 @@ async def run(query: str) -> str:
                     })
                 else:
                     tc = out.tool_call
-                    print(f"[iter {iteration+1}] Tool: {tc.name}({list(tc.arguments.keys())})")
+                    print(f"[decision]      TOOL_CALL: {tc.name}({json.dumps(tc.arguments)})")
                     result_text, art_id = await action_mod.execute(session, tc)
-                    print(f"[iter {iteration+1}] Result: {result_text[:150]}")
+                    print(f"[action]        → {result_text[:200]}")
                     mem.record_outcome(tc, result_text, art_id, run_id, goal.id)
                     history.append({
                         "kind": "action",
@@ -209,9 +169,9 @@ async def run(query: str) -> str:
                         "art_id": art_id,
                     })
             else:
-                print(f"[MAX_ITERATIONS={MAX_ITERATIONS} reached]")
+                print(f"\n[MAX_ITERATIONS={MAX_ITERATIONS} reached]")
 
-    return await _synthesize_final_answer(query, history, mem)
+    return final_answer_from(history)
 
 
 def main():

@@ -80,7 +80,6 @@ async def execute(
             source=tool_call.name,
             descriptor=f"{tool_call.name} result",
         )
-        preview = text[:200]
-        return f"[artifact {art_id}, {len(text.encode())} bytes] preview: {preview}", art_id
+        return f"[artifact {art_id}, {len(text.encode())} bytes]", art_id
 
     return text, None
