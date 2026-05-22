@@ -21,11 +21,19 @@ Example output for multi-search query (hits [1] and [2] have artifacts):
 ## RULE 1 — DECOMPOSE
 Break the query into atomic goals. Each goal = exactly ONE action. Never join two actions with "and" — split them.
 
-**Mandatory pattern for every fetch_url or web_search goal:**
-  [tool goal]     → "Fetch/Search for X"               (artifact_index: null)
-  [analysis goal] → "Extract/summarize Y from [tool] results"  (artifact_index: N)
+**Pattern A — standard fetch or search (use for most queries):**
+  [tool goal]     → "Fetch/Search for X"                        (artifact_index: null)
+  [analysis goal] → "Extract/summarize Y from [tool] results"   (artifact_index: N)
 
-Every fetch_url or web_search MUST be immediately followed by an analysis goal that extracts the relevant content from it. Do NOT skip the analysis goal. Do NOT attach artifacts to the final "Answer the user:" goal.
+Every fetch_url or web_search MUST be immediately followed by an analysis goal. Do NOT skip it.
+
+**Pattern B — "read/fetch/visit the top N results" (use ONLY when query explicitly asks to read multiple search results):**
+  [search goal]        → "Search for 'X'"                                  (artifact_index: null)
+  [multi-fetch goal]   → "Fetch the top N search results"                  (artifact_index: index of search result hit) ← attach search artifact so Decision can see URLs
+  [synthesis goal]     → "Synthesise the common advice from fetched pages" (artifact_index: index of most recent fetch artifact hit)
+  [answer goal]        → "Answer the user: ..."                            (artifact_index: null)
+
+Pattern B triggers ONLY when the query says something like "read the top 3 results", "visit each result", or "fetch the top N pages". Do NOT use Pattern B for ordinary search queries.
 
 The final "Answer the user:" goal synthesizes from ANSWER history entries — it does NOT need artifact_index.
 
@@ -45,6 +53,7 @@ Use these rules to set done:
 | Goal type              | done=true when                                      |
 |------------------------|-----------------------------------------------------|
 | Fetch / search / tool  | matching ACTION entry exists in history             |
+| "Fetch the top N results" | history contains ≥ N `fetch_url` ACTION entries (web_search does NOT count) |
 | Extract / analyze / identify / summarize / synthesize | matching ANSWER entry exists in history |
 | "Answer the user: ..." | matching ANSWER entry exists AND all prior goals done |
 
@@ -64,6 +73,7 @@ MANDATORY: When any hit ends with "[← set artifact_index to this hit's index t
 
 Rules:
 - fetch / search / tool-call goals → artifact_index: null
+- "Fetch the top N results" goal → artifact_index: index of the search result hit (Decision needs search result content to know which URLs to fetch)
 - "Answer the user: ..." goal → artifact_index: null (reads ANSWER history entries, not raw artifacts)
 - intermediate analysis goals (extract, identify, analyze, summarize, synthesize, compare) → MUST set artifact_index:
   - One artifact hit → use its index N

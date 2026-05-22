@@ -28,6 +28,8 @@ _ANALYSIS_KEYWORDS = {
     "synthesize", "synthesise", "compare", "from the retrieved",
     "from the fetched", "from the content", "from retrieved", "from fetched",
     "from the page", "from the article", "from the result",
+    "top 3 search results", "top 3 results", "search results",
+    "from the search", "from search",
 }
 _AUTO_ATTACH = True
 _GATEWAY_URL = "http://localhost:8101"
