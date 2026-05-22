@@ -76,7 +76,7 @@ async def _synthesize_final_answer(query: str, history: list[dict], mem: Memory)
     resp = LLM().chat(
         prompt=(
             f"Based on the research results below, provide a complete, specific answer to: {query}\n\n"
-            f"Include all specific facts (dates, names, figures, weather conditions) found in the results. "
+            f"Include all specific facts (dates, names, figures) found in the results. "
             f"Write at least 3 complete sentences.\n\nRESEARCH RESULTS:\n{context}"
         ),
         auto_route="decision",
