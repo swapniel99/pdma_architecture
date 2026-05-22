@@ -206,7 +206,7 @@ class MemoryClassification(BaseModel):
         value: Structured dictionary representation of the memory content.
         confidence: Confidence score assigned to the classification (0.0 to 1.0).
     """
-    kind: Literal["fact", "preference", "tool_outcome", "scratchpad"]
+    kind: Literal["fact", "preference", "tool_outcome", "scratchpad", "none"]
     keywords: list[str]
     descriptor: str
     value: dict[str, Any]
