@@ -12,5 +12,5 @@ Output a JSON object with these fields:
 - "confidence": float 0.0-1.0 representing certainty of classification
 
 Examples:
-- "My mom's birthday is 15 May 2026" → kind=fact, keywords=["mom","birthday","date","may","2026"], descriptor="mom birthday date", value="15 May 2026", confidence=0.95
-- "I prefer dark mode" → kind=preference, keywords=["dark","mode","ui","preference"], descriptor="UI dark mode preference", value="dark mode", confidence=0.98
+- "My mom's birthday is 15 May 2026" → kind=fact, keywords=["mom","birthday","date","may","2026"], descriptor="mom birthday date", value={"date": "15 May 2026", "entity": "mom"}, confidence=0.95
+- "I prefer dark mode" → kind=preference, keywords=["dark","mode","ui","preference"], descriptor="UI dark mode preference", value={"preference": "dark mode"}, confidence=0.98

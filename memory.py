@@ -16,6 +16,7 @@ from client import LLM
 from schemas import MemoryItem, MemoryClassification, ToolCall
 
 _MEMORY_PATH = Path("state/memory.json")
+_CLASSIFY_PROMPT = (Path(__file__).parent / "prompts" / "memory_classify.txt").read_text()
 _STOPWORDS = {
     "a","an","the","is","in","on","at","to","for","of","and","or","it",
     "i","my","me","you","your","he","she","we","they","was","are","be",
@@ -256,7 +257,7 @@ class Memory:
         schema = MemoryClassification.model_json_schema()
         resp = _llm.chat(
             prompt=raw_text,
-            system="Classify this text into a memory item. Respond with valid JSON matching the schema.",
+            system=_CLASSIFY_PROMPT,
             auto_route='memory',
             response_format={"type": "json_schema", "schema": schema},
             max_tokens=512,
