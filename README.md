@@ -1,6 +1,6 @@
 # Session 6 Agent — Multi-Role Cognitive Agent
 
-A multi-role cognitive agent built with four typed modules: `memory.py`, `perception.py`, `decision.py`, and `action.py`, wired together in `agent.py`. All LLM calls go through the LLM Gateway V3 (`localhost:8101`). Tool dispatch uses MCP stdio transport.
+A multi-role cognitive agent built with four typed modules: `memory.py`, `perception.py`, `decision.py`, and `action.py`, wired together in `agent6.py`. All LLM calls go through the LLM Gateway V3 (`localhost:8101`). Tool dispatch uses MCP stdio transport.
 
 ## Prerequisites
 
@@ -25,120 +25,179 @@ A multi-role cognitive agent built with four typed modules: `memory.py`, `percep
 ./run_query.sh d
 ```
 
-Actual queries are in `queries/query_<id>.txt`. `run_query.sh` resets state automatically unless `--no-clear` is passed.
+Actual queries are in `docs/query_<id>.txt`. `run_query.sh` resets state automatically unless `--no-clear` is passed.
 
 ---
 
 ## Query A — Claude Shannon Wikipedia
 
-Clean state. Expected iterations: 3, limit: 6.
+Clean state. Expected iterations: 3, limit: 6. **Actual: 4.**
 
 ```
-$ rm -rf state/memory.json state/artifacts/
-$ uv run python agent.py "Who is Claude Shannon? What are his birth date, death date, and 3 major contributions to information theory?"
+$ ./run_query.sh a
+State cleared.
+Query [a]: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his birth date, death date, and three key contributions to information theory.
 
-[iter 1] Goals:
-  ○ Identify who Claude Shannon is
-  ○ Find Claude Shannon's birth date
-  ○ Find Claude Shannon's death date
-  ○ List 3 major contributions of Claude Shannon to information theory
-[iter 1] Tool: web_search(['query'])
-[iter 1] Result: [artifact art:8db8e1e4b746d087, 8285 bytes] preview: ...
+─── iter 1 ───
+[memory.read]   0 hits
+[perception]    [open] Fetch https://en.wikipedia.org/wiki/Claude_Shannon
+                [open] Extract Claude Shannon's birth date, death date, and three key contributions to information theory from the retrieved content
+                [open] Answer the user: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his birth date, death date, and three key contributions to information theory.
+[decision]      TOOL_CALL: fetch_url({"url": "https://en.wikipedia.org/wiki/Claude_Shannon"})
+[action]        → [artifact art:0001, 266693 bytes]
 
-[iter 2] Goals:
-  ○ Identify who Claude Shannon is [attach=art:8db8e1e4b746d087]
-  ○ Find Claude Shannon's birth date [attach=art:8db8e1e4b746d087]
-  ○ Find Claude Shannon's death date [attach=art:8db8e1e4b746d087]
-  ○ List 3 major contributions of Claude Shannon to information theory [attach=art:8db8e1e4b746d087]
-[iter 2] Answer: Claude Shannon, full name Claude Elwood Shannon, was an American mathematician...
+─── iter 2 ───
+[memory.read]   1 hit
+[perception]    [done] Fetch https://en.wikipedia.org/wiki/Claude_Shannon
+                [open] Extract Claude Shannon's birth date, death date, and three key contributions to information theory from the retrieved content
+                [open] Answer the user: Fetch https://en.wikipedia.org/wiki/Claude_Shannon...
+[attach]        art:0001 (266693 bytes)
+[decision]      ANSWER: Claude Shannon was born on April 30, 1916, and he passed away on February 24, 2001...
 
-[iter 3] Goals:
-  ✓ Identify who Claude Shannon is
-  ✓ Find Claude Shannon's birth date
-  ○ Find Claude Shannon's death date
-  ○ List 3 major contributions of Claude Shannon to information theory
-[iter 3] Answer: Claude Shannon died in 2001. Specifically, he passed away...
+─── iter 3 ───
+[memory.read]   1 hit
+[perception]    [done] Fetch https://en.wikipedia.org/wiki/Claude_Shannon
+                [done] Extract Claude Shannon's birth date, death date, and three key contributions to information theory from the retrieved content
+                [open] Answer the user: Fetch https://en.wikipedia.org/wiki/Claude_Shannon...
+[decision]      ANSWER: Claude Shannon was born on April 30, 1916, and passed away on February 24, 2001...
 
-[iter 4] Goals:
-  ✓ Identify who Claude Shannon is
-  ✓ Find Claude Shannon's birth date
-  ✓ Find Claude Shannon's death date
-  ○ List 3 major contributions of Claude Shannon to information theory
-[iter 4] Tool: fetch_url(['url'])
-[iter 4] Result: [artifact art:db4fbba0dee4ae81, 19363 bytes] preview: ...
+─── iter 4 ───
+[memory.read]   1 hit
+[perception]    [done] Fetch https://en.wikipedia.org/wiki/Claude_Shannon
+                [done] Extract Claude Shannon's birth date, death date, and three key contributions to information theory from the retrieved content
+                [done] Answer the user: Fetch https://en.wikipedia.org/wiki/Claude_Shannon...
 
-[iter 5] Goals:
-  ✓ Identify who Claude Shannon is
-  ✓ Find Claude Shannon's birth date
-  ✓ Find Claude Shannon's death date
-  ○ List 3 major contributions of Claude Shannon to information theory
-[iter 5] Answer: Claude Shannon made several key contributions...
-
-[iter 6] Goals:
-  ✓ Identify who Claude Shannon is
-  ✓ Find Claude Shannon's birth date
-  ✓ Find Claude Shannon's death date
-  ✓ List 3 major contributions of Claude Shannon to information theory
-[iter 6] All goals done. Stopping.
+[done] all 3 goals satisfied
 
 ============================================================
 FINAL ANSWER:
 ============================================================
-Claude Elwood Shannon (April 30, 1916 – February 24, 2001) was an American mathematician and
-electrical engineer widely regarded as the father of information theory. Born in Petoskey,
-Michigan, he revolutionized digital circuit design by applying Boolean algebra to relay and
-switching circuits in his 1937 MIT master's thesis, which laid the groundwork for modern digital
-computers. Among his three major contributions to information theory are: (1) the introduction of
-the "bit" as the fundamental unit of information, enabling precise quantification of information;
-(2) the formulation of Shannon Entropy, a measure of uncertainty or information content analogous
-to thermodynamic entropy; and (3) the development of the Shannon Channel Capacity Theorem, which
-defines the maximum rate at which information can be reliably transmitted over a communication
-channel. These foundational ideas have profoundly influenced communications, computing, biology,
-and many other fields.
+Claude Shannon was born on April 30, 1916, and passed away on February 24, 2001. Widely
+recognized as the "father of information theory," his seminal work includes the introduction of
+information entropy as a measure of information content, which provides a mathematical framework
+for data compression and transmission. Additionally, he established the fundamental connection
+between Boolean algebra and electronic circuits, which serves as the theoretical basis for modern
+digital computing. Finally, he formulated the Shannon-Hartley theorem, which defines the maximum
+rate at which information can be reliably transmitted over a communications channel with a
+specified bandwidth in the presence of noise.
 ```
 
 ---
 
 ## Query B — Tokyo Weekend Activities
 
-Clean state. Expected iterations: ~6, limit: 12.
+Clean state. Expected iterations: ~8, limit: 12. **Actual: 8.**
 
 ```
-$ rm -rf state/memory.json state/artifacts/
-$ uv run python agent.py "I'm visiting Tokyo this Saturday. Based on the weather forecast, recommend one activity from: visit Senso-ji temple, attend outdoor summer festival, or have ramen in a cozy shop. Justify your recommendation."
+$ ./run_query.sh b
+State cleared.
+Query [b]: Find 3 family-friendly things to do in Tokyo this weekend. Check Saturday's weather forecast there and tell me which one is most appropriate.
 
-[iter 1] Goals:
-  ○ Identify the weather forecast for Tokyo this Saturday.
-  ○ Recommend one activity from the provided list (Senso-ji temple, summer festival, or ramen shop) based on the weather.
-  ○ Justify the recommendation based on the weather forecast.
-[iter 1] Tool: web_search(['query', 'max_results'])
-[iter 1] Result: [artifact art:004735e25a0567f4, 11560 bytes] preview: ...
+─── iter 1 ───
+[memory.read]   0 hits
+[perception]    [open] Search for family-friendly activities in Tokyo this weekend
+                [open] Extract 3 family-friendly activities from search results
+                [open] Search for Tokyo weather forecast for Saturday
+                [open] Extract Saturday weather details from weather search results
+                [open] Identify which of the 3 activities is most appropriate for the Saturday weather
+                [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
+[decision]      TOOL_CALL: web_search({"query": "family-friendly activities in Tokyo this weekend"})
+[action]        → [artifact art:0001, 11475 bytes]
 
-[iter 2] Goals:
-  ○ Identify the weather forecast for Tokyo this Saturday.
-  ○ Recommend one activity from the provided list...
-  ○ Justify the recommendation...
-[iter 2] Tool: web_search(['query', 'max_results'])
-[iter 2] Result: [artifact art:004735e25a0567f4, 11560 bytes] preview: ...
+─── iter 2 ───
+[memory.read]   1 hit
+[perception]    [done] Search for family-friendly activities in Tokyo this weekend
+                [open] Extract 3 family-friendly activities from search results
+                [open] Search for Tokyo weather forecast for Saturday
+                [open] Extract Saturday weather details from weather search results
+                [open] Identify which of the 3 activities is most appropriate for the Saturday weather
+                [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
+[attach]        art:0001 (11475 bytes)
+[decision]      ANSWER: Tokyo offers a wide variety of family-friendly activities...
 
-[iter 3] Goals:
-  ✓ Identify the weather forecast for Tokyo this Saturday. [attach=art:004735e25a0567f4]
-  ✓ Recommend one activity from the provided list...
-  ✓ Justify the recommendation...
-[iter 3] All goals done. Stopping.
+─── iter 3 ───
+[memory.read]   1 hit
+[perception]    [done] Search for family-friendly activities in Tokyo this weekend
+                [done] Extract 3 family-friendly activities from search results
+                [open] Search for Tokyo weather forecast for Saturday
+                [open] Extract Saturday weather details from weather search results
+                [open] Identify which of the 3 activities is most appropriate for the Saturday weather
+                [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
+[decision]      TOOL_CALL: web_search({"query": "Tokyo weather forecast Saturday"})
+[action]        → [artifact art:0002, 10473 bytes]
+
+─── iter 4 ───
+[memory.read]   2 hits
+[perception]    [done] Search for family-friendly activities in Tokyo this weekend
+                [done] Extract 3 family-friendly activities from search results
+                [done] Search for Tokyo weather forecast for Saturday
+                [open] Extract Saturday weather details from weather search results
+                [open] Identify which of the 3 activities is most appropriate for the Saturday weather
+                [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
+[attach]        art:0002 (10473 bytes)
+[decision]      ANSWER: Based on the provided weather forecasts for Tokyo in May 2026...
+
+─── iter 5 ───
+[memory.read]   2 hits
+[perception]    [done] Search for family-friendly activities in Tokyo this weekend
+                [done] Extract 3 family-friendly activities from search results
+                [done] Search for Tokyo weather forecast for Saturday
+                [done] Extract Saturday weather details from weather search results
+                [open] Identify which of the 3 activities is most appropriate for the Saturday weather
+                [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
+[attach]        art:0002 (10473 bytes)
+[decision]      ANSWER: Given that the weather forecast for Saturday, May 23, 2026, in Tokyo predicts sunny, pleasant conditions...
+
+─── iter 6 ───
+[memory.read]   2 hits
+[perception]    [done] Search for family-friendly activities in Tokyo this weekend
+                [done] Extract 3 family-friendly activities from search results
+                [done] Search for Tokyo weather forecast for Saturday
+                [done] Extract Saturday weather details from weather search results
+                [done] Identify which of the 3 activities is most appropriate for the Saturday weather
+                [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
+[attach]        art:0002 (10473 bytes)
+[decision]      TOOL_CALL: web_search({"query": "family-friendly activities in Tokyo for a sunny day"})
+[action]        → [artifact art:0003, 10383 bytes]
+
+─── iter 7 ───
+[memory.read]   3 hits
+[perception]    [done] Search for family-friendly activities in Tokyo this weekend
+                [done] Extract 3 family-friendly activities from search results
+                [done] Search for Tokyo weather forecast for Saturday
+                [done] Extract Saturday weather details from weather search results
+                [done] Identify which of the 3 activities is most appropriate for the Saturday weather
+                [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
+[attach]        art:0003 (10383 bytes)
+[decision]      ANSWER: For your weekend in Tokyo, here are three excellent family-friendly activities...
+
+─── iter 8 ───
+[memory.read]   3 hits
+[perception]    [done] Search for family-friendly activities in Tokyo this weekend
+                [done] Extract 3 family-friendly activities from search results
+                [done] Search for Tokyo weather forecast for Saturday
+                [done] Extract Saturday weather details from weather search results
+                [done] Identify which of the 3 activities is most appropriate for the Saturday weather
+                [done] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
+
+[done] all 6 goals satisfied
 
 ============================================================
 FINAL ANSWER:
 ============================================================
-Based on the weather forecast for Tokyo this Saturday, May 2026, I recommend visiting Senso-ji
-Temple. The forecast shows daytime temperatures in Tokyo reaching around 22°C (71.6°F) with
-nighttime lows of 17°C (62.6°F), and humidity levels averaging 71%, which creates warm but
-comfortable conditions ideal for sightseeing. While light rain or muggy conditions after showers
-are possible—May averages about 9 rainy days—there is no indication of heavy rain or extreme heat
-that would disrupt outdoor plans. An outdoor summer festival might be less enjoyable due to
-potential humidity and sporadic showers, while a cozy ramen shop, though appealing, would not take
-full advantage of the pleasant daytime warmth; therefore, visiting the historic and culturally rich
-Senso-ji Temple in Asakusa offers the best balance of comfort, activity, and weather suitability.
+For your weekend in Tokyo, here are three excellent family-friendly activities:
+
+1. Ghibli Museum (Mitaka): This enchanting museum allows children to explore the whimsical world
+   of Studio Ghibli, featuring a giant Cat Bus and short films. It is located within Inokashira
+   Park, which provides beautiful walking paths and outdoor space.
+2. Sunshine City (Ikebukuro): This massive entertainment complex is a one-stop destination for
+   families. It houses the Sunshine Aquarium, the Tenbou-Park observation deck, and the Pokemon
+   Center MEGA TOKYO.
+3. Ueno Zoo: As Japan's oldest zoo, home to over 300 animal species including giant pandas.
+
+Given the favorable weather forecast for Saturday, May 23 (sunny, high of 24°C, no precipitation),
+the Ghibli Museum is the most appropriate choice. Situated inside Inokashira Park, the sunny
+weather allows families to enjoy both the indoor museum exhibits and the surrounding park grounds.
 ```
 
 ---
@@ -150,101 +209,202 @@ Run 1 and Run 2 use the same `state/`. Expected iterations: 4 / 2.
 ### Run 1
 
 ```
-$ rm -rf state/memory.json state/artifacts/
-$ uv run python agent.py "My mom's birthday is on 15 May 2026. Please create a reminder file in the sandbox for it, and also note that she likes chocolate cake."
+$ ./run_query.sh c1
+State cleared.
+Query [c1]: My mom's birthday is 15 May 2026. Remember that and give me a calendar reminder for two weeks before and on the day.
 
-[iter 1] Goals:
-  ○ Create a reminder file for Mom's birthday on May 15, 2026, including the preference for chocolate cake.
-[iter 1] Tool: create_file(['path', 'content'])
-[iter 1] Result: type='text' text='{"ok": true, "path": "moms_birthday_reminder.txt", "size_bytes": 101}'
+─── iter 1 ───
+[memory.read]   1 hit
+[perception]    [open] Set a calendar reminder for 1 May 2026
+                [open] Set a calendar reminder for 15 May 2026
+                [open] Answer the user: My mom's birthday is 15 May 2026...
+[decision]      TOOL_CALL: create_file({"content": "Reminder: Calendar event set for 1 May 2026.", "path": "2026-05-01.txt"})
+[action]        → {"ok": true, "path": "2026-05-01.txt", "size_bytes": 44}
 
-[iter 2] Goals:
-  ✓ Create a reminder file for Mom's birthday on May 15, 2026, including the preference for chocolate cake.
-[iter 2] All goals done. Stopping.
+─── iter 2 ───
+[memory.read]   2 hits
+[perception]    [done] Set a calendar reminder for 1 May 2026
+                [open] Set a calendar reminder for 15 May 2026
+                [open] Answer the user: My mom's birthday is 15 May 2026...
+[decision]      TOOL_CALL: create_file({"content": "Reminder: Mom's birthday is on 15 May 2026.", "path": "2026-05-15.txt"})
+[action]        → {"ok": true, "path": "2026-05-15.txt", "size_bytes": 43}
+
+─── iter 3 ───
+[memory.read]   3 hits
+[perception]    [done] Set a calendar reminder for 1 May 2026
+                [done] Set a calendar reminder for 15 May 2026
+                [open] Answer the user: My mom's birthday is 15 May 2026...
+[decision]      ANSWER: I have successfully set the requested reminders for your mother's birthday...
+
+─── iter 4 ───
+[memory.read]   3 hits
+[perception]    [done] Set a calendar reminder for 1 May 2026
+                [done] Set a calendar reminder for 15 May 2026
+                [done] Answer the user: My mom's birthday is 15 May 2026...
+
+[done] all 3 goals satisfied
 
 ============================================================
 FINAL ANSWER:
 ============================================================
-Since your mom's birthday is on 15 May 2026, a reminder file named 'moms_birthday_reminder.txt'
-has been created in the sandbox. The file notes both the date (May 15, 2026) and her preference for
-chocolate cake. With this reminder in place, you can plan ahead to celebrate her birthday with the
-chocolate cake she loves.
+I have successfully set the requested reminders for your mother's birthday. A reminder file has
+been created for the actual day, May 15, 2026, and a second reminder file has been created for
+two weeks prior, on May 1, 2026. You can rest assured that both dates are now documented in the
+system to help you prepare for the celebration.
 ```
 
 ### Run 2 (same state/, no reset)
 
 ```
-$ uv run python agent.py "When is mom's birthday?"
+$ ./run_query.sh c2 --no-clear
+Query [c2]: When is mom's birthday?
 
-[iter 1] Goals:
-  ○ Identify the date of mom's birthday from the available memory hits
-[iter 1] Answer: The date of mom's birthday is available in the memory hits.
+─── iter 1 ───
+[memory.read]   2 hits
+[perception]    [open] Answer the user: When is mom's birthday?
+[decision]      ANSWER: Mom's birthday is on May 15, 2026...
 
-[iter 2] Goals:
-  ✓ Identify the date of mom's birthday from the available memory hits
-[iter 2] All goals done. Stopping.
+─── iter 2 ───
+[memory.read]   3 hits
+[perception]    [done] Answer the user: When is mom's birthday?
+
+[done] all 1 goal satisfied
 
 ============================================================
 FINAL ANSWER:
 ============================================================
-Mom's birthday is on May 15, 2026. This date is confirmed by the information stored in the file
-named 'moms_birthday_reminder.txt,' which serves as a reminder for the occasion. Additionally, it
-is noted that for her birthday celebration, she prefers chocolate cake.
+Mom's birthday is on May 15, 2026. This information is confirmed by the records stored in your
+memory. Additionally, a reminder file has been created in the system to ensure this date is
+noted for the future.
 ```
 
 ---
 
-## Query D — asyncio Synthesis
+## Query D — asyncio Synthesis (Pattern B)
 
-Clean state. Expected iterations: 5–7, limit: 14.
+Clean state. Expected iterations: ~10, limit: 14. **Actual: 11.**
 
 ```
-$ rm -rf state/memory.json state/artifacts/
-$ uv run python agent.py "Find the top asyncio best practices by fetching at least 2 web pages about Python asyncio. Then synthesize a numbered list of the top 5 pieces of advice that appear in multiple sources."
+$ ./run_query.sh d
+State cleared.
+Query [d]: Search for 'Python asyncio best practices', read the top 3 results, and give me a short numbered list of the advice they agree on.
 
-[iter 1] Goals:
-  ○ Fetch at least 2 web pages about Python asyncio best practices.
-  ○ Synthesize a numbered list of the top 5 pieces of asyncio advice from the fetched sources.
-[iter 1] Tool: web_search(['query', 'max_results'])
-[iter 1] Result: [artifact art:2f0e322505062fa1, 10952 bytes] preview: ...
+─── iter 1 ───
+[memory.read]   0 hits
+[perception]    [open] Search for 'Python asyncio best practices'
+                [open] List the top 3 URLs from the search results
+                [open] Fetch the 1st search result
+                [open] Extract key points from the 1st result
+                [open] Fetch the 2nd search result
+                [open] Extract key points from the 2nd result
+                [open] Fetch the 3rd search result
+                [open] Extract key points from the 3rd result
+                [open] Synthesise the common advice from fetched pages
+                [open] Answer the user: Search for 'Python asyncio best practices'...
+[decision]      TOOL_CALL: web_search({"query": "Python asyncio best practices"})
+[action]        → [artifact art:0001, 10785 bytes]
 
-[iter 2] Goals:
-  ○ Fetch at least 2 web pages about Python asyncio best practices.
-  ✓ Synthesize a numbered list of the top 5 pieces of asyncio advice from the fetched sources.
-[iter 2] Tool: fetch_url(['url'])
-[iter 2] Result: [artifact art:a53effa9dcf5c071, 6765 bytes] preview: ...
+─── iter 2 ───
+[memory.read]   1 hit
+[perception]    [done] Search for 'Python asyncio best practices'
+                [open] List the top 3 URLs from the search results
+                ... (8 goals open)
+[attach]        art:0001 (10785 bytes)
+[decision]      ANSWER: The top 3 URLs from the search results are:
+                1. https://www.shanechang.com/p/python-asyncio-best-practices-pitfalls
+                2. https://discuss.python.org/t/asyncio-best-practices/12576
+                3. https://oneuptime.com/blog/post/2026-01-24-asyncio-concurrent-programming-python/view
 
-[iter 3] Goals:
-  ○ Fetch at least 2 web pages about Python asyncio best practices.
-  ✓ Synthesize a numbered list...
-[iter 3] Tool: web_search(['query', 'max_results'])
-[iter 3] Result: [artifact art:2f0e322505062fa1, 10952 bytes] preview: ...
+─── iter 3 ───
+[memory.read]   1 hit
+[perception]    [done] Search for 'Python asyncio best practices'
+                [done] List the top 3 URLs from the search results
+                [open] Fetch the 1st search result
+                ... (7 goals open)
+[attach]        art:0001 (10785 bytes)
+[decision]      TOOL_CALL: fetch_url({"url": "https://www.shanechang.com/p/python-asyncio-best-practices-pitfalls"})
+[action]        → [artifact art:0002, 8818 bytes]
 
-[iter 4] Goals:
-  ✓ Fetch at least 2 web pages about Python asyncio best practices.
-  ✓ Synthesize a numbered list of the top 5 pieces of asyncio advice from the fetched sources.
-[iter 4] All goals done. Stopping.
+─── iter 4 ───
+[memory.read]   2 hits
+[perception]    [done] Fetch the 1st search result
+                [open] Extract key points from the 1st result
+                ... (6 goals open)
+[attach]        art:0002 (8818 bytes)
+[decision]      ANSWER: Key points from article 1 (shanechang.com): use asyncio.run() as entry
+                point; never block the event loop; use create_task() for concurrency...
+
+─── iter 5 ───
+[memory.read]   2 hits
+[perception]    [done] Extract key points from the 1st result
+                [open] Fetch the 2nd search result
+                ... (5 goals open)
+[attach]        art:0001 (10785 bytes)
+[decision]      TOOL_CALL: fetch_url({"url": "https://discuss.python.org/t/asyncio-best-practices/12576"})
+[action]        → [artifact art:0003, 6749 bytes]
+
+─── iter 6 ───
+[memory.read]   3 hits
+[perception]    [done] Fetch the 2nd search result
+                [open] Extract key points from the 2nd result
+                ... (4 goals open)
+[attach]        art:0003 (6749 bytes)
+[decision]      ANSWER: Key points from article 2 (discuss.python.org): understand event loop
+                lifecycle; prefer structured concurrency patterns...
+
+─── iter 7 ───
+[memory.read]   3 hits
+[perception]    [done] Extract key points from the 2nd result
+                [open] Fetch the 3rd search result
+                ... (3 goals open)
+[attach]        art:0001 (10785 bytes)
+[decision]      TOOL_CALL: fetch_url({"url": "https://oneuptime.com/blog/post/2026-01-24-asyncio-concurrent-programming-python/view"})
+[action]        → [artifact art:0004, 35399 bytes]
+
+─── iter 8 ───
+[memory.read]   4 hits
+[perception]    [done] Fetch the 3rd search result
+                [open] Extract key points from the 3rd result
+                ... (2 goals open)
+[attach]        art:0004 (35399 bytes)
+[decision]      ANSWER: Key points from article 3 (oneuptime.com): do not block event loop;
+                use asyncio.gather() for parallel tasks; handle CancelledError...
+
+─── iter 9 ───
+[memory.read]   4 hits
+[perception]    [done] Extract key points from the 3rd result
+                [open] Synthesise the common advice from fetched pages
+                [open] Answer the user: Search for 'Python asyncio best practices'...
+[attach]        art:0004 (35399 bytes)
+[decision]      ANSWER: Common advice across all 3 sources: (1) never block event loop,
+                (2) use asyncio.run() as entry point, (3) use gather()/create_task()...
+
+─── iter 10 ───
+[memory.read]   4 hits
+[perception]    [done] Synthesise the common advice from fetched pages
+                [open] Answer the user: Search for 'Python asyncio best practices'...
+[decision]      ANSWER: Based on the analysis of the top three resources...
+
+─── iter 11 ───
+[memory.read]   4 hits
+[perception]    [done] Answer the user: Search for 'Python asyncio best practices'...
+
+[done] all 10 goals satisfied
 
 ============================================================
 FINAL ANSWER:
 ============================================================
-Based on the research results from two primary web sources — Discussions on Python.org and
-OneUptime Blog — the following numbered list presents the top 5 asyncio best practices:
+Based on the analysis of the top three resources regarding Python's asyncio library, the
+following best practices are consistently recommended:
 
-1. Never block the event loop with synchronous operations — use `await asyncio.sleep()` instead of
-   `time.sleep()` inside async functions.
-
-2. Use `asyncio.create_task()` to run independent operations concurrently rather than awaiting
-   coroutines sequentially.
-
-3. Always start asyncio programs with `asyncio.run()` as the standard safe entry point since
-   Python 3.7, replacing manual loop management.
-
-4. Run blocking I/O or CPU-bound code in a thread pool using `loop.run_in_executor()` to prevent
-   blocking the main event loop.
-
-5. Handle task cancellation gracefully using try/except for `asyncio.CancelledError` to allow
-   cleanup before re-raising the exception.
+1. Do Not Block the Event Loop: Never use blocking synchronous code (time.sleep(), standard
+   requests, or CPU-bound computations) inside an async function — it halts the entire event
+   loop and prevents other tasks from progressing.
+2. Use asyncio.run() as the Entry Point: Handles creation and destruction of the event loop
+   automatically, ensures proper task cleanup, and correctly manages signals.
+3. Use High-Level APIs for Concurrency: Use asyncio.gather() or asyncio.TaskGroup rather than
+   manually managing tasks. These tools run multiple coroutines concurrently and handle error
+   propagation if one task fails.
 ```
 
 ---
