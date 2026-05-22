@@ -9,19 +9,27 @@ EAG3-06 (Session 6) assignment: build a multi-role cognitive agent using four mo
 ## Commands
 
 ```bash
-# Run MCP server (stdio transport — used by agent loop internally)
-uv run python mcp_server.py
+# Install dependencies
+uv sync
 
-# Run agent against a query
+# Run agent against a query (LLM Gateway must already be running at localhost:8101)
 uv run python agent.py "your query here"
 
-# Reset state between runs
+# Run a named target query (a/b/c1/c2/d) — reads from queries/query_<id>.txt
+./run_query.sh <a|b|c1|c2|d>
+./run_query.sh c2 --no-clear   # preserve C1 memory for C2
+
+# Reset state between runs (clears state/memory.json, state/artifacts/, sandbox/*)
 bash clear_state.sh
-# or: rm -rf state/memory.json state/artifacts/
+
+# Run MCP server standalone (normally launched internally by agent loop via stdio)
+uv run python mcp_server.py
 ```
 
 Requires Python ≥ 3.14. Required env vars in `.env`:
 - `TAVILY_API_KEY` — web search primary
+
+**Prerequisite:** LLM Gateway V3 must be running at `http://localhost:8101` before starting the agent. The agent does not launch it.
 
 ## Architecture
 
@@ -58,7 +66,7 @@ This means analysis goals and "Fetch Nth" goals always receive relevant content 
 - `state/memory.json` — all MemoryItems (facts, preferences, tool_outcomes, scratchpad)
 - `state/artifacts/<id>.bin` + `<id>.json` — raw bytes + metadata for large tool outputs
 - `usage.json` — monthly Tavily search count (hard-capped at 5 results per call)
-- Clean between attempts: `rm -rf state/memory.json state/artifacts/`
+- Clean between attempts: `bash clear_state.sh` (also wipes `sandbox/*`)
 
 ### Main loop sketch (`agent.py`)
 ```
@@ -88,6 +96,8 @@ return await _synthesize_final_answer(query, history, mem)
 ### Supporting modules
 - `artifacts.py` — `ArtifactStore`: sequential byte store; `put()` returns `art:<NNNN>` handle (counter in `state/artifacts/_counter.json`); files land in `state/artifacts/<id>.{bin,json}`
 - `prompts/` — raw text files loaded by each role at import time: `decision.txt`, `memory_classify.txt`, `perception.txt`
+- `queries/query_<id>.txt` — actual query text for each target (read by `run_query.sh`)
+- `pop_validation.json` — prompt evaluation scores for the three prompts (criteria: structured output, reasoning, tool separation, etc.)
 
 ### Pydantic contracts (`schemas.py`)
 

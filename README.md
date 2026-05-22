@@ -1,6 +1,6 @@
 # Session 6 Agent — Multi-Role Cognitive Agent
 
-A multi-role cognitive agent built with four typed modules: `memory.py`, `perception.py`, `decision.py`, and `action.py`, wired together in `agent6.py`. All LLM calls go through the LLM Gateway V3 (`localhost:8101`). Tool dispatch uses MCP stdio transport.
+A multi-role cognitive agent built with four typed modules: `memory.py`, `perception.py`, `decision.py`, and `action.py`, wired together in `agent.py`. All LLM calls go through the LLM Gateway V3 (`localhost:8101`). Tool dispatch uses MCP stdio transport.
 
 ## Prerequisites
 
@@ -25,7 +25,7 @@ A multi-role cognitive agent built with four typed modules: `memory.py`, `percep
 ./run_query.sh d
 ```
 
-Actual queries are in `docs/query_<id>.txt`. `run_query.sh` resets state automatically unless `--no-clear` is passed.
+Actual queries are in `queries/query_<id>.txt`. `run_query.sh` resets state automatically unless `--no-clear` is passed.
 
 ---
 
@@ -41,7 +41,7 @@ Query [a]: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his bi
 ─── iter 1 ───
 [memory.read]   0 hits
 [perception]    [open] Fetch https://en.wikipedia.org/wiki/Claude_Shannon
-                [open] Extract Claude Shannon's birth date, death date, and three key contributions to information theory from the retrieved content
+                [open] Extract his birth date, death date, and three key contributions to information theory from the fetched content
                 [open] Answer the user: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his birth date, death date, and three key contributions to information theory.
 [decision]      TOOL_CALL: fetch_url({"url": "https://en.wikipedia.org/wiki/Claude_Shannon"})
 [action]        → [artifact art:0001, 266693 bytes]
@@ -49,22 +49,22 @@ Query [a]: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his bi
 ─── iter 2 ───
 [memory.read]   1 hit
 [perception]    [done] Fetch https://en.wikipedia.org/wiki/Claude_Shannon
-                [open] Extract Claude Shannon's birth date, death date, and three key contributions to information theory from the retrieved content
-                [open] Answer the user: Fetch https://en.wikipedia.org/wiki/Claude_Shannon...
+                [open] Extract his birth date, death date, and three key contributions to information theory from the fetched content
+                [open] Answer the user: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his birth date, death date, and three key contributions to information theory.
 [attach]        art:0001 (266693 bytes)
-[decision]      ANSWER: Claude Shannon was born on April 30, 1916, and he passed away on February 24, 2001...
+[decision]      ANSWER: Claude Shannon was born on April 30, 1916, and passed away on February 24, 2001...
 
 ─── iter 3 ───
 [memory.read]   1 hit
 [perception]    [done] Fetch https://en.wikipedia.org/wiki/Claude_Shannon
-                [done] Extract Claude Shannon's birth date, death date, and three key contributions to information theory from the retrieved content
+                [done] Extract his birth date, death date, and three key contributions to information theory from the fetched content
                 [open] Answer the user: Fetch https://en.wikipedia.org/wiki/Claude_Shannon...
 [decision]      ANSWER: Claude Shannon was born on April 30, 1916, and passed away on February 24, 2001...
 
 ─── iter 4 ───
 [memory.read]   1 hit
 [perception]    [done] Fetch https://en.wikipedia.org/wiki/Claude_Shannon
-                [done] Extract Claude Shannon's birth date, death date, and three key contributions to information theory from the retrieved content
+                [done] Extract his birth date, death date, and three key contributions to information theory from the fetched content
                 [done] Answer the user: Fetch https://en.wikipedia.org/wiki/Claude_Shannon...
 
 [done] all 3 goals satisfied
@@ -72,21 +72,27 @@ Query [a]: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his bi
 ============================================================
 FINAL ANSWER:
 ============================================================
-Claude Shannon was born on April 30, 1916, and passed away on February 24, 2001. Widely
-recognized as the "father of information theory," his seminal work includes the introduction of
-information entropy as a measure of information content, which provides a mathematical framework
-for data compression and transmission. Additionally, he established the fundamental connection
-between Boolean algebra and electronic circuits, which serves as the theoretical basis for modern
-digital computing. Finally, he formulated the Shannon-Hartley theorem, which defines the maximum
-rate at which information can be reliably transmitted over a communications channel with a
-specified bandwidth in the presence of noise.
+Claude Shannon was born on April 30, 1916, and passed away on February 24, 2001. As the "father
+of information theory," his foundational contributions to the field include:
+
+1.  **Development of Information Entropy:** In his seminal 1948 paper, "A Mathematical Theory of
+    Communication," Shannon introduced the concept of information entropy as a measure of the
+    uncertainty or information content in a message, which became the fundamental unit of
+    measurement in digital communication.
+2.  **The Sampling Theorem:** He is credited with the development (and formal proof) of the
+    Nyquist–Shannon sampling theorem, which establishes the conditions under which a
+    continuous-time signal can be perfectly reconstructed from a sequence of discrete samples.
+3.  **Circuit Theory via Boolean Algebra:** In his 1937 master's thesis, Shannon demonstrated
+    that electrical relay circuits could be used to solve Boolean algebraic problems, effectively
+    mapping logic to electronic hardware and laying the theoretical groundwork for all modern
+    digital computer design.
 ```
 
 ---
 
 ## Query B — Tokyo Weekend Activities
 
-Clean state. Expected iterations: ~8, limit: 12. **Actual: 8.**
+Clean state. Expected iterations: ~8, limit: 12. **Actual: 6.**
 
 ```
 $ ./run_query.sh b
@@ -95,109 +101,82 @@ Query [b]: Find 3 family-friendly things to do in Tokyo this weekend. Check Satu
 
 ─── iter 1 ───
 [memory.read]   0 hits
-[perception]    [open] Search for family-friendly activities in Tokyo this weekend
-                [open] Extract 3 family-friendly activities from search results
-                [open] Search for Tokyo weather forecast for Saturday
-                [open] Extract Saturday weather details from weather search results
-                [open] Identify which of the 3 activities is most appropriate for the Saturday weather
+[perception]    [open] Search for family-friendly activities to do in Tokyo this weekend
+                [open] Extract 3 family-friendly activities from Tokyo search results
+                [open] Search for Tokyo Saturday weather forecast
+                [open] Extract Saturday weather details from Tokyo weather search results
                 [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
 [decision]      TOOL_CALL: web_search({"query": "family-friendly activities in Tokyo this weekend"})
-[action]        → [artifact art:0001, 11475 bytes]
+[action]        → [artifact art:0001, 9254 bytes]
 
 ─── iter 2 ───
 [memory.read]   1 hit
-[perception]    [done] Search for family-friendly activities in Tokyo this weekend
-                [open] Extract 3 family-friendly activities from search results
-                [open] Search for Tokyo weather forecast for Saturday
-                [open] Extract Saturday weather details from weather search results
-                [open] Identify which of the 3 activities is most appropriate for the Saturday weather
+[perception]    [done] Search for family-friendly activities to do in Tokyo this weekend
+                [open] Extract 3 family-friendly activities from Tokyo search results
+                [open] Search for Tokyo Saturday weather forecast
+                [open] Extract Saturday weather details from Tokyo weather search results
                 [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
-[attach]        art:0001 (11475 bytes)
-[decision]      ANSWER: Tokyo offers a wide variety of family-friendly activities...
+[attach]        art:0001 (9254 bytes)
+[decision]      ANSWER: For a family visiting Tokyo, there are a variety of engaging activities...
 
 ─── iter 3 ───
 [memory.read]   1 hit
-[perception]    [done] Search for family-friendly activities in Tokyo this weekend
-                [done] Extract 3 family-friendly activities from search results
-                [open] Search for Tokyo weather forecast for Saturday
-                [open] Extract Saturday weather details from weather search results
-                [open] Identify which of the 3 activities is most appropriate for the Saturday weather
+[perception]    [done] Search for family-friendly activities to do in Tokyo this weekend
+                [done] Extract 3 family-friendly activities from Tokyo search results
+                [open] Search for Tokyo Saturday weather forecast
+                [open] Extract Saturday weather details from Tokyo weather search results
                 [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
 [decision]      TOOL_CALL: web_search({"query": "Tokyo weather forecast Saturday"})
-[action]        → [artifact art:0002, 10473 bytes]
+[action]        → [artifact art:0002, 9889 bytes]
 
 ─── iter 4 ───
 [memory.read]   2 hits
-[perception]    [done] Search for family-friendly activities in Tokyo this weekend
-                [done] Extract 3 family-friendly activities from search results
-                [done] Search for Tokyo weather forecast for Saturday
-                [open] Extract Saturday weather details from weather search results
-                [open] Identify which of the 3 activities is most appropriate for the Saturday weather
+[perception]    [done] Search for family-friendly activities to do in Tokyo this weekend
+                [done] Extract 3 family-friendly activities from Tokyo search results
+                [done] Search for Tokyo Saturday weather forecast
+                [open] Extract Saturday weather details from Tokyo weather search results
                 [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
-[attach]        art:0002 (10473 bytes)
-[decision]      ANSWER: Based on the provided weather forecasts for Tokyo in May 2026...
+[attach]        art:0002 (9889 bytes)
+[decision]      ANSWER: According to the latest weather forecast for Saturday, May 23, 2026,
+                Tokyo is expected to be cloudy with a comfortable high of 20°C...
 
 ─── iter 5 ───
 [memory.read]   2 hits
-[perception]    [done] Search for family-friendly activities in Tokyo this weekend
-                [done] Extract 3 family-friendly activities from search results
-                [done] Search for Tokyo weather forecast for Saturday
-                [done] Extract Saturday weather details from weather search results
-                [open] Identify which of the 3 activities is most appropriate for the Saturday weather
+[perception]    [done] Search for family-friendly activities to do in Tokyo this weekend
+                [done] Extract 3 family-friendly activities from Tokyo search results
+                [done] Search for Tokyo Saturday weather forecast
+                [done] Extract Saturday weather details from Tokyo weather search results
                 [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
-[attach]        art:0002 (10473 bytes)
-[decision]      ANSWER: Given that the weather forecast for Saturday, May 23, 2026, in Tokyo predicts sunny, pleasant conditions...
+[decision]      ANSWER: For a family-friendly weekend in Tokyo, three excellent options include...
 
 ─── iter 6 ───
 [memory.read]   2 hits
-[perception]    [done] Search for family-friendly activities in Tokyo this weekend
-                [done] Extract 3 family-friendly activities from search results
-                [done] Search for Tokyo weather forecast for Saturday
-                [done] Extract Saturday weather details from weather search results
-                [done] Identify which of the 3 activities is most appropriate for the Saturday weather
-                [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
-[attach]        art:0002 (10473 bytes)
-[decision]      TOOL_CALL: web_search({"query": "family-friendly activities in Tokyo for a sunny day"})
-[action]        → [artifact art:0003, 10383 bytes]
-
-─── iter 7 ───
-[memory.read]   3 hits
-[perception]    [done] Search for family-friendly activities in Tokyo this weekend
-                [done] Extract 3 family-friendly activities from search results
-                [done] Search for Tokyo weather forecast for Saturday
-                [done] Extract Saturday weather details from weather search results
-                [done] Identify which of the 3 activities is most appropriate for the Saturday weather
-                [open] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
-[attach]        art:0003 (10383 bytes)
-[decision]      ANSWER: For your weekend in Tokyo, here are three excellent family-friendly activities...
-
-─── iter 8 ───
-[memory.read]   3 hits
-[perception]    [done] Search for family-friendly activities in Tokyo this weekend
-                [done] Extract 3 family-friendly activities from search results
-                [done] Search for Tokyo weather forecast for Saturday
-                [done] Extract Saturday weather details from weather search results
-                [done] Identify which of the 3 activities is most appropriate for the Saturday weather
+[perception]    [done] Search for family-friendly activities to do in Tokyo this weekend
+                [done] Extract 3 family-friendly activities from Tokyo search results
+                [done] Search for Tokyo Saturday weather forecast
+                [done] Extract Saturday weather details from Tokyo weather search results
                 [done] Answer the user: Find 3 family-friendly things to do in Tokyo this weekend...
 
-[done] all 6 goals satisfied
+[done] all 5 goals satisfied
 
 ============================================================
 FINAL ANSWER:
 ============================================================
-For your weekend in Tokyo, here are three excellent family-friendly activities:
+For a family-friendly weekend in Tokyo, three excellent options include:
 
-1. Ghibli Museum (Mitaka): This enchanting museum allows children to explore the whimsical world
-   of Studio Ghibli, featuring a giant Cat Bus and short films. It is located within Inokashira
-   Park, which provides beautiful walking paths and outdoor space.
-2. Sunshine City (Ikebukuro): This massive entertainment complex is a one-stop destination for
-   families. It houses the Sunshine Aquarium, the Tenbou-Park observation deck, and the Pokemon
-   Center MEGA TOKYO.
-3. Ueno Zoo: As Japan's oldest zoo, home to over 300 animal species including giant pandas.
+1.  **Samurai Ninja Museum (Asakusa):** This offers an interactive experience where families can
+    participate in kid-friendly ninja training, making it an engaging way to learn about Japanese
+    history.
+2.  **Ramen-Making Classes (Shibuya):** A fun, hands-on culinary activity suitable for all ages,
+    allowing family members to work together to create their own custom ramen.
+3.  **Sumo Workshop:** A unique cultural immersion where families can learn about the sport of
+    sumo wrestling in an accessible and often humorous setting.
 
-Given the favorable weather forecast for Saturday, May 23 (sunny, high of 24°C, no precipitation),
-the Ghibli Museum is the most appropriate choice. Situated inside Inokashira Park, the sunny
-weather allows families to enjoy both the indoor museum exhibits and the surrounding park grounds.
+Given the weather forecast for Saturday, May 23, 2026, which predicts a cloudy day with a
+comfortable high of 20°C and a very low (10%) chance of precipitation, all three activities are
+highly appropriate. However, the **Samurai Ninja Museum** is arguably the most suitable choice,
+as it is an indoor activity that provides a perfect escape if the clouds lead to unexpected light
+drizzles, while still being centrally located and highly interactive for children.
 ```
 
 ---
@@ -215,31 +194,31 @@ Query [c1]: My mom's birthday is 15 May 2026. Remember that and give me a calend
 
 ─── iter 1 ───
 [memory.read]   1 hit
-[perception]    [open] Set a calendar reminder for 1 May 2026
-                [open] Set a calendar reminder for 15 May 2026
+[perception]    [open] Set a calendar reminder for 1 May 2026 for mom's birthday
+                [open] Set a calendar reminder for 15 May 2026 for mom's birthday
                 [open] Answer the user: My mom's birthday is 15 May 2026...
-[decision]      TOOL_CALL: create_file({"content": "Reminder: Calendar event set for 1 May 2026.", "path": "2026-05-01.txt"})
-[action]        → {"ok": true, "path": "2026-05-01.txt", "size_bytes": 44}
+[decision]      TOOL_CALL: create_file({"content": "Reminder: Mom's birthday is May 15th. Reminder set for May 1st to prepare for the upcoming birthday.", "path": "2026-05-01.txt"})
+[action]        → {"ok": true, "path": "2026-05-01.txt", "size_bytes": 100}
 
 ─── iter 2 ───
 [memory.read]   2 hits
-[perception]    [done] Set a calendar reminder for 1 May 2026
-                [open] Set a calendar reminder for 15 May 2026
+[perception]    [done] Set a calendar reminder for 1 May 2026 for mom's birthday
+                [open] Set a calendar reminder for 15 May 2026 for mom's birthday
                 [open] Answer the user: My mom's birthday is 15 May 2026...
-[decision]      TOOL_CALL: create_file({"content": "Reminder: Mom's birthday is on 15 May 2026.", "path": "2026-05-15.txt"})
-[action]        → {"ok": true, "path": "2026-05-15.txt", "size_bytes": 43}
+[decision]      TOOL_CALL: create_file({"path": "2026-05-15.txt", "content": "Reminder: Mom's birthday is May 15th. Reminder set for May 15th, 2026."})
+[action]        → {"ok": true, "path": "2026-05-15.txt", "size_bytes": 70}
 
 ─── iter 3 ───
 [memory.read]   3 hits
-[perception]    [done] Set a calendar reminder for 1 May 2026
-                [done] Set a calendar reminder for 15 May 2026
+[perception]    [done] Set a calendar reminder for 1 May 2026 for mom's birthday
+                [done] Set a calendar reminder for 15 May 2026 for mom's birthday
                 [open] Answer the user: My mom's birthday is 15 May 2026...
-[decision]      ANSWER: I have successfully set the requested reminders for your mother's birthday...
+[decision]      ANSWER: I have successfully scheduled the reminders for your mother's birthday...
 
 ─── iter 4 ───
 [memory.read]   3 hits
-[perception]    [done] Set a calendar reminder for 1 May 2026
-                [done] Set a calendar reminder for 15 May 2026
+[perception]    [done] Set a calendar reminder for 1 May 2026 for mom's birthday
+                [done] Set a calendar reminder for 15 May 2026 for mom's birthday
                 [done] Answer the user: My mom's birthday is 15 May 2026...
 
 [done] all 3 goals satisfied
@@ -247,10 +226,10 @@ Query [c1]: My mom's birthday is 15 May 2026. Remember that and give me a calend
 ============================================================
 FINAL ANSWER:
 ============================================================
-I have successfully set the requested reminders for your mother's birthday. A reminder file has
-been created for the actual day, May 15, 2026, and a second reminder file has been created for
-two weeks prior, on May 1, 2026. You can rest assured that both dates are now documented in the
-system to help you prepare for the celebration.
+I have successfully scheduled the reminders for your mother's birthday. A reminder has been
+created for May 1st, 2026, to give you two weeks of notice, and a second reminder is set for
+May 15th, 2026, to mark the day of the birthday itself. Both reminder files have been saved in
+the system, ensuring you are prepared for the occasion.
 ```
 
 ### Run 2 (same state/, no reset)
@@ -260,7 +239,7 @@ $ ./run_query.sh c2 --no-clear
 Query [c2]: When is mom's birthday?
 
 ─── iter 1 ───
-[memory.read]   2 hits
+[memory.read]   3 hits
 [perception]    [open] Answer the user: When is mom's birthday?
 [decision]      ANSWER: Mom's birthday is on May 15, 2026...
 
@@ -273,9 +252,9 @@ Query [c2]: When is mom's birthday?
 ============================================================
 FINAL ANSWER:
 ============================================================
-Mom's birthday is on May 15, 2026. This information is confirmed by the records stored in your
-memory. Additionally, a reminder file has been created in the system to ensure this date is
-noted for the future.
+Mom's birthday is on May 15, 2026. This date has been confirmed and documented in your system
+records. Reminder files have also been created in the sandbox for both May 1st and May 15th to
+ensure you are prepared for the occasion.
 ```
 
 ---
@@ -299,7 +278,6 @@ Query [d]: Search for 'Python asyncio best practices', read the top 3 results, a
                 [open] Extract key points from the 2nd result
                 [open] Fetch the 3rd search result
                 [open] Extract key points from the 3rd result
-                [open] Synthesise the common advice from fetched pages
                 [open] Answer the user: Search for 'Python asyncio best practices'...
 [decision]      TOOL_CALL: web_search({"query": "Python asyncio best practices"})
 [action]        → [artifact art:0001, 10785 bytes]
@@ -373,22 +351,14 @@ Query [d]: Search for 'Python asyncio best practices', read the top 3 results, a
 ─── iter 9 ───
 [memory.read]   4 hits
 [perception]    [done] Extract key points from the 3rd result
-                [open] Synthesise the common advice from fetched pages
-                [open] Answer the user: Search for 'Python asyncio best practices'...
-[decision]      ANSWER: Common advice across all 3 sources: (1) never block event loop,
-                (2) use asyncio.run() as entry point, (3) use gather()/create_task()...
-
-─── iter 10 ───
-[memory.read]   4 hits
-[perception]    [done] Synthesise the common advice from fetched pages
                 [open] Answer the user: Search for 'Python asyncio best practices'...
 [decision]      ANSWER: Based on the analysis of the top three resources...
 
-─── iter 11 ───
+─── iter 10 ───
 [memory.read]   4 hits
 [perception]    [done] Answer the user: Search for 'Python asyncio best practices'...
 
-[done] all 10 goals satisfied
+[done] all 9 goals satisfied
 
 ============================================================
 FINAL ANSWER:
