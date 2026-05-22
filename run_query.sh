@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-QUERY_DIR="$(dirname "$0")/docs"
+QUERY_DIR="$(dirname "$0")/queries"
 
 usage() {
     echo "Usage: $0 <query_id> [--no-clear]"
