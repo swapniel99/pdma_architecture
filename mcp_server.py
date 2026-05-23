@@ -160,7 +160,7 @@ async def _crawl4ai_fetch(url: str) -> dict:
 
 @mcp.tool()
 def web_search(query: str, max_results: int = 5) -> list[dict]:
-    """Search the web (Tavily primary, DDG fallback). Hard-capped at 5 results. Example: web_search("python asyncio tutorial", 3)."""
+    """Search the web and return a list of results, each with 'title', 'url', and 'snippet' fields. Snippets are short excerpts — NOT full page content. Use this to discover relevant URLs; fetch a URL separately to get full text. Hard-capped at 5 results. Example: web_search(query="python asyncio tutorial", max_results=3)."""
     max_results = max(1, min(max_results, MAX_SEARCH_RESULTS))
     if os.environ.get("TAVILY_API_KEY") and _under_cap("tavily"):
         try:
@@ -177,13 +177,13 @@ def web_search(query: str, max_results: int = 5) -> list[dict]:
 
 @mcp.tool()
 async def fetch_url(url: str, timeout: int = 20) -> dict:
-    """Fetch clean markdown from a URL via crawl4ai (headless Chromium). Example: fetch_url("https://example.com")."""
+    """Fetch the full text content of a specific URL as clean markdown (via headless Chromium). Use when you have a URL and need its complete content — not just a snippet. Large pages are stored as artifacts. Example: fetch_url(url="https://example.com", timeout=10)."""
     return await _crawl4ai_fetch(url)
 
 
 @mcp.tool()
 def get_time(timezone: str = "UTC") -> dict:
-    """Current time in a named IANA timezone. Example: get_time("Asia/Kolkata")."""
+    """Current time in a named IANA timezone. Example: get_time(timezone="Asia/Kolkata")."""
     tz = ZoneInfo(timezone)
     now = datetime.now(tz)
     offset = now.utcoffset()
@@ -198,7 +198,7 @@ def get_time(timezone: str = "UTC") -> dict:
 
 @mcp.tool()
 def currency_convert(amount: float, from_currency: str, to_currency: str) -> dict:
-    """Convert money between ISO-3 currencies via frankfurter.dev. Example: currency_convert(100, "USD", "INR")."""
+    """Convert money between ISO-3 currencies via frankfurter.dev. Example: currency_convert(amount=100, from_currency="USD", to_currency="INR")."""
     f = from_currency.upper()
     t = to_currency.upper()
     url = f"https://api.frankfurter.dev/v1/latest?amount={amount}&base={f}&symbols={t}"
@@ -220,7 +220,7 @@ def currency_convert(amount: float, from_currency: str, to_currency: str) -> dic
 
 @mcp.tool()
 def read_file(path: str) -> dict:
-    """Read a UTF-8 text file from the sandbox. Example: read_file("notes.txt")."""
+    """Read a UTF-8 text file from the sandbox. Example: read_file(path="notes.txt")."""
     p = _safe(path)
     text = p.read_text(encoding="utf-8")
     return {
@@ -233,7 +233,7 @@ def read_file(path: str) -> dict:
 
 @mcp.tool()
 def list_dir(path: str = ".") -> list[dict]:
-    """List a directory inside the sandbox. Example: list_dir(".")."""
+    """List a directory inside the sandbox. Example: list_dir(path=".")."""
     p = _safe(path)
     out = []
     for child in sorted(p.iterdir()):
@@ -248,7 +248,7 @@ def list_dir(path: str = ".") -> list[dict]:
 
 @mcp.tool()
 def create_file(path: str, content: str) -> dict:
-    """Create a new file in the sandbox; errors if it exists. Example: create_file("hello.txt", "hi")."""
+    """Create a new file in the sandbox; errors if it already exists. Example: create_file(path="hello.txt", content="hi")."""
     p = _safe(path)
     if p.exists():
         raise ValueError(f"File '{path}' already exists")
@@ -260,7 +260,7 @@ def create_file(path: str, content: str) -> dict:
 
 @mcp.tool()
 def update_file(path: str, content: str) -> dict:
-    """Overwrite an existing sandbox file. Example: update_file("hello.txt", "new body")."""
+    """Overwrite an existing sandbox file. Example: update_file(path="hello.txt", content="new body")."""
     p = _safe(path)
     if not p.exists():
         raise ValueError(f"File '{path}' does not exist")
@@ -270,7 +270,7 @@ def update_file(path: str, content: str) -> dict:
 
 @mcp.tool()
 def edit_file(path: str, find: str, replace: str, replace_all: bool = False) -> dict:
-    """Find-and-replace inside a sandbox file. Example: edit_file("hello.txt", "foo", "bar")."""
+    """Find-and-replace inside a sandbox file. Example: edit_file(path="hello.txt", find="foo", replace="bar")."""
     p = _safe(path)
     text = p.read_text(encoding="utf-8")
     count = text.count(find)

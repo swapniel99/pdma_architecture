@@ -30,7 +30,7 @@ Break the query into atomic goals. Each goal = exactly ONE action. Never join tw
   [tool goal]     → "Fetch/Search for X"                        (artifact_index: null)
   [analysis goal] → "Extract/summarize Y from [tool] results"   (artifact_index: N)
 
-Every fetch_url or web_search MUST be immediately followed by an analysis goal. Do NOT skip it.
+Every fetch or search goal MUST be immediately followed by an analysis goal. Do NOT skip it.
 
 The "Answer the user:" goal reads all prior ANSWER entries from history and synthesizes them — it handles cross-source combination directly. Do NOT add a separate "Identify", "Determine", "Recommend", or "Synthesise" goal before "Answer the user:" — it is redundant.
 
@@ -65,7 +65,7 @@ Use these rules to set done:
 | Goal type              | done=true when                                      |
 |------------------------|-----------------------------------------------------|
 | Fetch / search / tool  | matching ACTION entry exists in history             |
-| "Fetch the Nth search result" | matching `fetch_url` ACTION entry exists in history (web_search does NOT count) |
+| "Fetch the Nth search result" | matching URL-fetch ACTION entry exists in history (a web-search ACTION does NOT count) |
 | "List the top N URLs ..."     | matching ANSWER entry exists in history             |
 | Extract / analyze / identify / summarize | matching ANSWER entry exists in history |
 | "Answer the user: ..." | matching ANSWER entry exists AND all prior goals done |
@@ -89,14 +89,12 @@ Rules:
 - "Fetch the Nth search result" goal → artifact_index: index of the search result hit (Decision needs search result content to know which URL to fetch)
 - "Answer the user: ..." goal → artifact_index: null (reads ANSWER history entries, not raw artifacts)
 - synthesize goals ("Synthesise...", "Summarise across...") → artifact_index: null (extracted content is already in ANSWER history entries; raw artifacts not needed)
-- intermediate analysis goals (extract, identify, analyze, summarize, compare) → MUST set artifact_index:
-  - One artifact hit → use its index N
-  - Multiple artifact hits → pick the hit whose descriptor (URL/tool name) best matches the goal topic
+- intermediate analysis goals (extract, identify, analyze, summarize, compare) → MUST set artifact_index to the index N of the hit that has the artifact relevant to this goal
 
 Example:
   Memory hits:
     [0] (fact) user query: Fetch https://example.com and extract the title
-    [1] (tool_outcome) fetch_url(url=https://example.com): [artifact art:0001, 50000 bytes] [← set artifact_index to this hit's index to attach it]
+    [1] (tool_outcome) <tool>(url=https://example.com): [artifact art:0001, 50000 bytes] [← set artifact_index to this hit's index to attach it]
   Goal: "Extract the title from the retrieved content"
   → artifact_index: 1    ← MANDATORY: hit [1] has the artifact, goal is analysis
   Goal: "Fetch https://example.com"

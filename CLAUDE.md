@@ -42,11 +42,42 @@ Requires Python ≥ 3.14. Required env vars in `.env`:
 | `decision.py` | Returns `DecisionOutput`: either `answer` (str) or `tool_call` (ToolCall). One goal per call, never both outputs. Retries up to 3× with 3 s sleep on gateway error. | Every iteration |
 | `action.py` | Pure MCP dispatch. Stores payloads >4 KB in `ArtifactStore`; returns descriptor. No LLM. | Never |
 
+### Perception ↔ Decision division of labor
+
+**Perception** is the strategic planner. It sees the full picture (query + all memory hits + full history + prior goal list) and produces/maintains the ordered goal list. It runs every iteration and is the only role that marks goals `done`. It uses Gemini at `temperature=1.0` for broad, creative planning — it trades consistency for coverage.
+
+**Decision** is the tactical executor. It receives exactly ONE goal at a time (the first unfinished one from Perception's list) plus relevant memory and attached artifact bytes. It has no view of other goals. It makes exactly one move per call: either a tool call or a final text answer — never both, never neither. It uses `auto_route="decision"` at `temperature=0.7` for precise, deterministic choices.
+
+The agent loop alternates: Perception replans → Decision acts → Perception replans with updated history. Perception cannot act; Decision cannot replan.
+
+**Goal decomposition patterns** (defined in `prompts/perception.txt`):
+
+| Pattern | When to use | Shape |
+|---|---|---|
+| A (standard) | Most queries — search or fetch one source | `[search/fetch] → [extract/analyze] → [Answer the user:]` |
+| B (multi-fetch) | Query explicitly asks to "read/visit the top N results" | `[search] → [list URLs] → [fetch 1] → [extract 1] → ... → [Answer the user:]` |
+
+Pattern B is triggered only by explicit language like "read the top 3 results". Pattern A is the default. Misclassifying A as B wastes iterations.
+
+**Done-marking rules** (enforced by Perception, defined in `prompts/perception.txt`):
+
+| Goal type | Marked done when |
+|---|---|
+| fetch / search / tool-call | matching `ACTION` entry in history |
+| "Fetch the Nth search result" | matching `fetch_url` ACTION (web_search does NOT count) |
+| "List the top N URLs…" | matching `ANSWER` entry in history |
+| extract / analyze / summarize | matching `ANSWER` entry in history |
+| "Answer the user:…" | matching `ANSWER` entry AND all prior goals done |
+
+An ACTION entry proves a tool ran — it does NOT prove any analysis happened. Extraction goals need their own ANSWER entry.
+
 ### Key invariants
 - **No free-form dicts between roles** — every boundary is a Pydantic v2 model from `schemas.py`
 - **No direct SDK calls** — all LLM calls go through gateway at `http://localhost:8101` via `client.py`
 - **No third-party agent frameworks** (LangChain, LangGraph, CrewAI)
 - **Perception owns done-marking** — Decision never declares a goal satisfied
+- **Perception has no tool awareness** — `prompts/perception.txt` must not mention any MCP tool name; goals use natural-language verbs ("search for", "fetch", "create a file")
+- **Decision has no tool documentation** — `prompts/decision.txt` gives abstract tool-selection reasoning only; MCP tool docstrings in `mcp_server.py` are the sole authoritative source of tool names, parameters, and usage examples
 - **Artifact handles** (`art:<NNNN>`) are not paths; Action blocks any tool call that passes one as `path` or `url`
 - **Goals have positional identity** — Perception preserves list order across iterations; no string-id hallucination
 - **Sticky-done** — once a goal is marked done in `prior_goals`, Perception keeps it done regardless of its own output
@@ -141,3 +172,19 @@ File tools are sandboxed under `./sandbox/`. `fetch_url` uses crawl4ai (headless
 
 Run with `./run_query.sh <a|b|c1|c2|d>`. Use `--no-clear` for C2 (must preserve C1 memory).
 Queries exceeding limit are not passing — tune prompts.
+
+## Prompt tuning
+
+Prompts live in `prompts/` and are loaded at **module import time** — restart the agent after edits.
+
+| Symptom | Likely cause | Where to fix |
+|---|---|---|
+| Query exceeds iteration limit | Perception marks goals done too early / too late | `prompts/perception.txt` RULE 3 |
+| Decision calls wrong tool | Tool docstring unclear or abstract guidance insufficient | `mcp_server.py` tool docstring, then `prompts/decision.txt` |
+| C2 triggers tools instead of answering from memory | MEMORY-SUFFICIENT RULE not firing | `prompts/perception.txt` first paragraph |
+| Analysis goal gets no artifact | `artifact_index` left null by Perception | `prompts/perception.txt` RULE 4 |
+| Pattern B activated for ordinary queries | Over-broad trigger detection | `prompts/perception.txt` RULE 1 Pattern B trigger description |
+
+**Tool detail ownership:** MCP tool docstrings in `mcp_server.py` are the single source of truth for what each tool does, its parameters, and usage examples. Do not duplicate this in either prompt file. If Decision consistently picks the wrong tool, improve the tool's docstring first.
+
+`pop_validation.json` tracks prompt quality scores — update after prompt changes to track regression.
