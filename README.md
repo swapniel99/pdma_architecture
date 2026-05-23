@@ -410,8 +410,8 @@ Evaluated against `queries/eval_prompt.md` criteria.
   "instructional_framing": true,
   "internal_self_checks": true,
   "reasoning_type_awareness": false,
-  "fallbacks": true,
-  "overall_clarity": "Strong multi-turn structure with JSON schema, worked examples, sticky-done safety rule, and explicit pre-output trace step. Reasoning-type tagging omitted — would require schema change and risk breaking JSON parsing."
+  "fallbacks": false,
+  "overall_clarity": "Highly robust. Pre-output reasoning trace (trace history → apply done rules → verify sticky-done) enforces structured thinking. JSON-only output with explicit schema eliminates format drift. Pattern A/B decomposition and done-marking table are precise. Gaps: no explicit reasoning-type tagging per goal (search vs extraction vs synthesis), and the only fallback for ambiguity is 'set done=false' — no protocol for unresolvable goal state. Adding explicit uncertainty handling and goal-type labels would improve downstream Decision performance."
 }
 ```
 
@@ -425,8 +425,8 @@ Evaluated against `queries/eval_prompt.md` criteria.
   "conversation_loop": true,
   "instructional_framing": true,
   "internal_self_checks": true,
-  "reasoning_type_awareness": false,
+  "reasoning_type_awareness": true,
   "fallbacks": true,
-  "overall_clarity": "Clear numbered decision process with hard rules (RULE 0/0b/1/2/3), self-check against all rules before output, and fallback guidance for tool errors. Step 2 encourages reasoning-type identification but it is internal-only with no output tag or enforcement — criterion not fully satisfied."
+  "overall_clarity": "Excellent on all criteria. Step 2 explicitly asks the model to identify reasoning type (factual-lookup | real-time-data | computation | file-operation | synthesis). Step 8 self-check verifies RULE 1 and artifact-handle constraints before output. Step 9 fallback handles tool errors with retry-or-partial-answer logic. Goal-type overrides (RULE 0/0b/0c) prevent the most common failure modes. Minor gap: reasoning trace is internal (used for decision) but not emitted — adding a visible scratchpad field would increase transparency for debugging."
 }
 ```

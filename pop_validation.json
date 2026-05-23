@@ -8,7 +8,7 @@
     "internal_self_checks": true,
     "reasoning_type_awareness": false,
     "fallbacks": false,
-    "overall_clarity": "The prompt is highly robust, professional, and well-structured. It provides excellent constraints for state management (Sticky-Done, Preserve Order) and clear logic for goal completion. It could be further improved by explicitly defining a 'fallback' or 'uncertainty' protocol for when the model cannot determine if a goal is met, and by asking the model to categorize the reasoning type (e.g., 'Search', 'Extraction', 'Synthesis') to improve downstream module performance."
+    "overall_clarity": "Highly robust. Pre-output reasoning trace (trace history → apply done rules → verify sticky-done) enforces structured thinking. JSON-only output with explicit schema eliminates format drift. Pattern A/B decomposition and done-marking table are precise. Gaps: no explicit reasoning-type tagging per goal (search vs extraction vs synthesis), and the only fallback for ambiguity is 'set done=false' — no protocol for unresolvable goal state. Adding explicit uncertainty handling and goal-type labels would improve downstream Decision performance."
   },
   "decision_prompt": {
     "explicit_reasoning": true,
@@ -17,8 +17,8 @@
     "conversation_loop": true,
     "instructional_framing": true,
     "internal_self_checks": true,
-    "reasoning_type_awareness": false,
+    "reasoning_type_awareness": true,
     "fallbacks": true,
-    "overall_clarity": "The prompt is highly robust and well-structured. It provides clear operational constraints and a logical decision-making flow. It excels at preventing common LLM pitfalls like hallucination and redundant tool usage. It could be further improved by explicitly asking the model to output its 'reasoning trace' before the final action to increase transparency."
+    "overall_clarity": "Excellent on all criteria. Step 2 explicitly asks the model to identify reasoning type (factual-lookup | real-time-data | computation | file-operation | synthesis). Step 8 self-check verifies RULE 1 and artifact-handle constraints before output. Step 9 fallback handles tool errors with retry-or-partial-answer logic. Goal-type overrides (RULE 0/0b/0c) prevent the most common failure modes. Minor gap: reasoning trace is internal (used for decision) but not emitted — adding a visible scratchpad field would increase transparency for debugging."
   }
 }
